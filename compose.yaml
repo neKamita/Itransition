@@ -1,0 +1,7 @@
+﻿services:
+  itransition:
+    image: itransition
+    build:
+      context: .
+      dockerfile: Dockerfile
+

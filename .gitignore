@@ -1,0 +1,51 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Tt]est[Rr]esult*/
+[Cc]overage[Rr]esults/
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+project.assets.json
+project.nuget.cache
+*.nuget.props
+*.nuget.targets
+
+# ASP.NET / local configuration
+appsettings.Local.json
+appsettings.*.local.json
+*.local.json
+.env
+.env.*
+!.env.example
+secrets.dev.yaml
+values.dev.yaml
+
+# User-specific IDE files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+riderModule.iml
+_ReSharper.Caches/
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Docker / compose local overrides
+compose.override.yaml
+docker-compose.override.yml
+
+# Publish artifacts
+publish/
+artifacts/
