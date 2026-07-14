@@ -1,0 +1,31 @@
+@using Itransition.ViewModel;
+@model VerifyViewModel;
+
+@{
+    ViewData["Title"] = "Email Verification";
+    Layout = "_AccountLayout";
+}
+<div>
+    <h2>Email Verification</h2>
+    <form method="post" asp-action="EmailVerify">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <button type="submit"  class="btn btn-primary">Verify Email</button>
+        <div>
+            <p>
+                <a asp-controller="Account" asp-action="Login">Back to Login</a>
+            </p>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

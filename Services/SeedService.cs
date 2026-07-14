@@ -13,17 +13,17 @@ public class SeedService
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<SeedService>>();
-        
+
 
         try
         {
             logger.LogInformation("Ensuring the databse is created.");
             await context.Database.EnsureCreatedAsync();
-            
+
             logger.LogInformation("Ensuring Roles are created.");
             await AddRoleAsync(roleManager,"Admin");
             await AddRoleAsync(roleManager,"User");
-            
+
             logger.LogInformation("Ensuring Admin is created.");
             var adminEmail = "admin@admin.com";
             var adminPassword = "Admin123!";
@@ -39,7 +39,7 @@ public class SeedService
                     EmailConfirmed = true,
                     SecurityStamp = Guid.NewGuid().ToString()
                 };
-                
+
                 var result = await userManager.CreateAsync(AdminUser, adminPassword);
                 if (result.Succeeded)
                 {

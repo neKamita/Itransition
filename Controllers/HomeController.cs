@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Itransition.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Itransition.Controllers;
 
@@ -11,7 +12,20 @@ public class HomeController : Controller
         return View();
     }
 
+    [Authorize]
     public IActionResult Privacy()
+    {
+        return View();
+    }
+
+    [Authorize(Roles = "User")]
+    public IActionResult User()
+    {
+        return View();
+    }
+
+    [Authorize(Roles = "Admin")]
+    public IActionResult Admin()
     {
         return View();
     }
@@ -21,4 +35,7 @@ public class HomeController : Controller
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
+
+
+
 }

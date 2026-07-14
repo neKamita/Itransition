@@ -1,0 +1,51 @@
+@using Itransition.ViewModel;
+@model LoginViewModel;
+@{
+     ViewData["Title"] = "Login";
+     Layout = "_AccountLayout";
+}
+
+<div>
+     <div>
+          <h2>Login</h2>
+          <form asp-action="Login" method="post">
+               @Html.AntiForgeryToken()
+               <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+               <div>
+                    <div>
+                         <label asp-for="EmailAddress" class="form-label"></label>
+                         <input asp-for="EmailAddress" class="form-control" />
+                         <span asp-validation-for="EmailAddress" class="text-danger"></span>
+                    </div>
+                    <div>
+                         <label asp-for="Password" class="form-label"></label>
+                         <input asp-for="Password" class="form-control" />
+                         <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+                    <div class="float-end">
+                         <a asp-controller="Account" asp-action="EmailVerify">Forgot Password?</a>
+                    </div>
+                    <div class="form-check">
+                         <label class="form-check-label">
+                              <input asp-for="RememberMe" class="form-check-input"/>
+                              @Html.DisplayNameFor(a => a.RememberMe)
+                         </label>
+                    </div>
+               </div>
+               <input type="submit" value="Login" />
+               <p class="text-center mt-2">
+                    Don`t have an account? <a asp-controller="Account" asp-action="Register" class="text-decoration-none"></a>
+               </p>
+               <div>
+                    <a asp-controller="Home" asp-action="Index" class="text-decoration-none">Back</a>
+               </div>
+          </form>
+     </div>
+</div>
+
+@section Scripts
+{
+     @{
+          await Html.RenderPartialAsync("_ValidationScriptsPartial");
+     }
+}

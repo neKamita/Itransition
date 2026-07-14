@@ -1,0 +1,54 @@
+@using Itransition.ViewModel
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = "_AccountLayout";
+}
+
+<div>
+    <div>
+
+        <h2>Create an account</h2>
+        <form method="post" asp-controller="Account" asp-action="Register">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Register</button>
+            <div>
+                <p>
+                    Already have an account? <a asp-controller="Account" asp-action="Login">Login</a>
+                </p>
+            </div>
+            <div>
+            </div>
+            <p>
+                <!-- Back to home -->
+                <a asp-controller="Home" asp-action="Index">Back to Home</a>
+            </p>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
