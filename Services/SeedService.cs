@@ -21,8 +21,9 @@ public class SeedService
             await context.Database.EnsureCreatedAsync();
 
             logger.LogInformation("Ensuring Roles are created.");
-            await AddRoleAsync(roleManager,"Admin");
-            await AddRoleAsync(roleManager,"User");
+            await AddRoleAsync(roleManager,"Administrator");
+            await AddRoleAsync(roleManager,"Recruiter");
+            await AddRoleAsync(roleManager, "Candidate");
 
             logger.LogInformation("Ensuring Admin is created.");
             var adminEmail = "admin@admin.com";
@@ -44,7 +45,7 @@ public class SeedService
                 if (result.Succeeded)
                 {
                     logger.LogInformation("Assigning Admin role to User.");
-                    await userManager.AddToRoleAsync(AdminUser, "Admin");
+                    await userManager.AddToRoleAsync(AdminUser, "Administrator");
                 }
                 else
                 {

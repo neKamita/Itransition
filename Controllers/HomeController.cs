@@ -18,14 +18,14 @@ public class HomeController : Controller
         return View();
     }
 
-    [Authorize(Roles = "User")]
-    public IActionResult User()
+    [Authorize(Roles = "Candidate")]
+    public IActionResult Candidate()
     {
         return View();
     }
 
-    [Authorize(Roles = "Admin")]
-    public IActionResult Admin()
+    [Authorize(Roles = "Recruiter")]
+    public IActionResult Recruiter()
     {
         return View();
     }

@@ -124,7 +124,7 @@ public class AccountController : Controller
             return RedirectToAction("VerifyEmail", "Account");
         }
 
-        return View(new ChangePasswordViewModel(){Email = username});
+        return View(new ChangePasswordViewModel(){Email = username, NewPassword ="", ConfirmedNewPassword = ""});
     }
 
     [HttpPost]
