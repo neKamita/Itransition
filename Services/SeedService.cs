@@ -1,6 +1,7 @@
 using Itransition.Data;
 using Itransition.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Itransition.Services;
 
@@ -18,7 +19,7 @@ public class SeedService
         try
         {
             logger.LogInformation("Ensuring the databse is created.");
-            await context.Database.EnsureCreatedAsync();
+            await context.Database.MigrateAsync();
 
             logger.LogInformation("Ensuring Roles are created.");
             await AddRoleAsync(roleManager,"Administrator");
@@ -26,8 +27,9 @@ public class SeedService
             await AddRoleAsync(roleManager, "Candidate");
 
             logger.LogInformation("Ensuring Admin is created.");
-            var adminEmail = "admin@admin.com";
-            var adminPassword = "Admin123!";
+            var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            var adminEmail = config["AdminConfiguration:Email"];
+            var adminPassword = config["AdminConfiguration:Password"];
 
             if (await userManager.FindByEmailAsync(adminEmail) == null)
             {

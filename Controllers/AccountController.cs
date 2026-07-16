@@ -71,12 +71,12 @@ public class AccountController : Controller
     var result = await userManager.CreateAsync(user, register.Password);
     if (result.Succeeded)
     {
-        var roleExists = await roleManager.RoleExistsAsync("User");
+        var roleExists = await roleManager.RoleExistsAsync("Candidate");
         if (!roleExists)
         {
-            await roleManager.CreateAsync(new IdentityRole("User"));
+            await roleManager.CreateAsync(new IdentityRole("Candidate"));
         }
-        await userManager.AddToRoleAsync(user, "User");
+        await userManager.AddToRoleAsync(user, "Candidate");
         await signInManager.SignInAsync(user, isPersistent: false);
 
         return RedirectToAction("Login", "Account");

@@ -8,7 +8,7 @@ using Itransition.ViewModel;
 namespace Itransition.Controllers;
 
 
-[Authorize(Roles = "Administrator")]
+[Authorize(Policy = "RequireAdministratorRole")]
 public class AdministratorController : Controller
 {
     private readonly UserManager<ApplicationUser> userManager;
@@ -21,6 +21,7 @@ public class AdministratorController : Controller
     }
 
     [HttpGet]
+    [Authorize(Policy = "RequireAdministratorRole")]
     public async Task<IActionResult> ListUsers()
     {
         var result = new List<AdminUserListViewModel>();
@@ -43,6 +44,7 @@ public class AdministratorController : Controller
     }
 
     [HttpPost]
+    [Authorize(Policy = "RequireAdministratorRole")]
     public async Task<IActionResult> BulkAction(string action, List<string> userIds)
     {
         var selfId = userManager.GetUserId(User);
