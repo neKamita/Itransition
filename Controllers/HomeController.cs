@@ -2,14 +2,22 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Itransition.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Itransition.Data;
 
 namespace Itransition.Controllers;
 
 public class HomeController : Controller
 {
-    public IActionResult Index()
+    private readonly ApplicationDbContext _context;
+
+    public async Task<IActionResult> Index()
     {
-        return View();
+        var publicPositions = await _context.Positions
+            .Where(p => p.IsPublic)
+            .ToListAsync();
+
+        return View(publicPositions);
     }
 
     [Authorize]
@@ -34,6 +42,12 @@ public class HomeController : Controller
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+    }
+
+
+    public HomeController(ApplicationDbContext context)
+    {
+        _context = context;
     }
 
 
