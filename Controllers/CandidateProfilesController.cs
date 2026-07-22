@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Itransition.Data;
 using Itransition.Models.Profiles;
+using Itransition.Models.Cvs;
+using Itransition.Models.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Itransition.ViewModel;
@@ -49,6 +51,14 @@ namespace Itransition.Controllers
 
             var candidateProfile = await _context.CandidateProfiles
                 .Include(c => c.User)
+                .Include(c => c.AttributeValues)
+                .ThenInclude(av => av.AttributeDefinition)
+                .ThenInclude(a => a.Options)
+                .Include(c => c.Projects)
+                .ThenInclude(p => p.TechnologyTags)
+                .Include(c => c.Cvs)
+                .ThenInclude(cv => cv.Position)
+
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (candidateProfile == null)
             {
@@ -178,6 +188,105 @@ namespace Itransition.Controllers
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAttributes()
+        {
+            var attrs = await _context.AttributeDefinitions
+                .Select(a => new { a.Id, a.Name, a.Category })
+                .OrderBy(a => a.Category)
+                .ThenBy(a => a.Name)
+                .ToListAsync();
+            return Json(attrs);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddAttribute(Guid profileId, Guid attributeDefinitionId)
+        {
+            if (profileId == Guid.Empty || attributeDefinitionId == Guid.Empty) return BadRequest();
+            var value = new UserAttributeValue
+            {
+                Id = Guid.NewGuid(),
+                CandidateProfileId = profileId,
+                AttributeDefinitionId = attributeDefinitionId,
+                AttributeDefinition = null!,
+                CandidateProfile = null!
+            };
+            _context.UserAttributeValues.Add(value);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true, id = value.Id });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveAttribute(Guid id)
+        {
+            var value = await _context.UserAttributeValues.FindAsync(id);
+            if (value != null) {
+                _context.UserAttributeValues.Remove(value);
+                await _context.SaveChangesAsync();
+            }
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateAttributeValue(Guid id, string value)
+        {
+            var attr = await _context.UserAttributeValues.FindAsync(id);
+            if (attr != null) {
+                attr.Value = value;
+                await _context.SaveChangesAsync();
+            }
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddProject(Guid profileId, string name, string description, DateTime? startDate, DateTime? endDate, string tags)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return BadRequest("Name is required");
+            if (startDate.HasValue && endDate.HasValue && endDate < startDate) return BadRequest("End date cannot be earlier than start date");
+
+            var project = new ProjectProfile
+            {
+                Id = Guid.NewGuid(),
+                CandidateProfileId = profileId,
+                CandidateProfile = null!,
+                Name = name,
+                Description = description,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            if (!string.IsNullOrWhiteSpace(tags))
+            {
+                var tagList = tags.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                  .Select(t => t.Trim())
+                                  .Where(t => !string.IsNullOrEmpty(t));
+                foreach (var tag in tagList)
+                {
+                    project.TechnologyTags.Add(new ProjectTechnologyTag { 
+                        Id = Guid.NewGuid(), 
+                        ProjectProfileId = project.Id, 
+                        ProjectProfile = null!, 
+                        TagName = tag 
+                    });
+                }
+            }
+
+            _context.ProjectProfiles.Add(project);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteProject(Guid id)
+        {
+            var project = await _context.ProjectProfiles.FindAsync(id);
+            if (project != null) {
+                _context.ProjectProfiles.Remove(project);
+                await _context.SaveChangesAsync();
+            }
+            return Json(new { success = true });
         }
 
         private bool CandidateProfileExists(Guid id)

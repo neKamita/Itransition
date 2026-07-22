@@ -1,39 +1,56 @@
 @model Itransition.Models.Positions.PositionAttribute
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Requirement";
 }
 
-<h1>Create</h1>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0 rounded-3 my-4">
+            <div class="card-header bg-dark text-white text-center py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-plus-circle me-2"></i>Create Requirement</h4>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
 
-<h4>PositionAttribute</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="PositionId" class="control-label"></label>
-                <select asp-for="PositionId" class ="form-control" asp-items="ViewBag.PositionId"></select>
+                    <div class="mb-3">
+                        <label asp-for="PositionId" class="form-label fw-semibold">Position</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
+                            <select asp-for="PositionId" class="form-select" asp-items="ViewBag.PositionId"></select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="AttributeDefinitionId" class="form-label fw-semibold">Attribute Definition</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                            <select asp-for="AttributeDefinitionId" class="form-select" asp-items="ViewBag.AttributeDefinitionId"></select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="OrderIndex" class="form-label fw-semibold">Order Index</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-sort-numeric-down"></i></span>
+                            <input asp-for="OrderIndex" class="form-control" />
+                        </div>
+                        <span asp-validation-for="OrderIndex" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="bi bi-check-circle me-1"></i>Create Requirement
+                    </button>
+                </form>
             </div>
-            <div class="form-group">
-                <label asp-for="AttributeDefinitionId" class="control-label"></label>
-                <select asp-for="AttributeDefinitionId" class ="form-control" asp-items="ViewBag.AttributeDefinitionId"></select>
+            <div class="card-footer bg-light text-center py-3">
+                <a asp-action="Index" class="small fw-bold text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
             </div>
-            <div class="form-group">
-                <label asp-for="OrderIndex" class="control-label"></label>
-                <input asp-for="OrderIndex" class="form-control" />
-                <span asp-validation-for="OrderIndex" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {

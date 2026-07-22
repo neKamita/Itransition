@@ -4,66 +4,62 @@
     ViewData["Title"] = "CVs";
 }
 
-<h1>CVs</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-file-earmark-text me-2"></i>CVs</h2>
+</div>
 
 <form id="bulkForm" method="post">
     <div class="mb-3 d-flex gap-2">
-        <a asp-action="Create" class="btn btn-primary">Create New</a>
-        <button type="submit" asp-action="DeleteSelected" class="btn btn-danger" onclick="return confirm('Delete selected items?')">
-            Delete Selected
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Create New
+        </a>
+        <button type="submit" asp-action="DeleteSelected" class="btn btn-danger btn-sm" onclick="return confirm('Delete selected items?')">
+            <i class="bi bi-trash me-1"></i>Delete Selected
         </button>
     </div>
 
-    <table class="table table-striped align-middle">
-        <thead>
-            <tr>
-                <th style="width: 40px;">
-                    <input type="checkbox" id="selectAll" class="form-check-input" />
-                </th>
-                <th>
-                    Candidate Profile
-                </th>
-                <th>
-                    Position
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Status)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.LikesCount)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.UpdatedDate)
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-    @foreach (var item in Model) {
-            <tr>
-                <td>
-                    <input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input select-item" />
-                </td>
-                <td>
-                    <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">
-                        @item.CandidateProfile?.FirstName @item.CandidateProfile?.LastName
-                    </a>
-                </td>
-                <td>
-                    @item.Position?.Title
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Status)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.LikesCount)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.UpdatedDate)
-                </td>
-            </tr>
-    }
-        </tbody>
-    </table>
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 40px;">
+                        <input type="checkbox" id="selectAll" class="form-check-input" />
+                    </th>
+                    <th>Candidate Profile</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                    <th>Likes</th>
+                    <th>Updated Date</th>
+                </tr>
+            </thead>
+            <tbody>
+        @foreach (var item in Model) {
+                <tr>
+                    <td>
+                        <input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input select-item" />
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-primary text-decoration-none">
+                            <i class="bi bi-person-badge me-1"></i>@item.CandidateProfile?.FirstName @item.CandidateProfile?.LastName
+                        </a>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">@item.Position?.Title</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-primary">@item.Status</span>
+                    </td>
+                    <td>
+                        <span class="fw-bold"><i class="bi bi-heart-fill text-danger me-1"></i>@item.LikesCount</span>
+                    </td>
+                    <td>
+                        @item.UpdatedDate.ToString("g")
+                    </td>
+                </tr>
+        }
+            </tbody>
+        </table>
+    </div>
 </form>
 
 @section Scripts {

@@ -18,5 +18,8 @@ public class CandidateProfile
 
     public List<UserAttributeValue> AttributeValues { get; set; } = new();
 
+    public List<ProjectProfile> Projects {get; set;} = new();
+    public List<Cv> Cvs { get; set; } = new();
+
     public required ApplicationUser User { get; set; }
 }

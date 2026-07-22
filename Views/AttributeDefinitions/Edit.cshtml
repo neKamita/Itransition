@@ -1,47 +1,68 @@
 @model Itransition.Models.Attributes.AttributeDefinition
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Attribute";
 }
 
-<h1>Edit</h1>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0 rounded-3 my-4">
+            <div class="card-header bg-dark text-white text-center py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Attribute</h4>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Edit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                    <input type="hidden" asp-for="Id" />
 
-<h4>AttributeDefinition</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label fw-semibold">Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                            <input asp-for="Name" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Category" class="form-label fw-semibold">Category</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-folder"></i></span>
+                            <input asp-for="Category" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Category" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-semibold">Description</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-card-text"></i></span>
+                            <input asp-for="Description" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="DataType" class="form-label fw-semibold">Data Type</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-code-square"></i></span>
+                            <select asp-for="DataType" class="form-select"></select>
+                        </div>
+                        <span asp-validation-for="DataType" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="bi bi-check-circle me-1"></i>Save Changes
+                    </button>
+                </form>
             </div>
-            <div class="form-group">
-                <label asp-for="Category" class="control-label"></label>
-                <input asp-for="Category" class="form-control" />
-                <span asp-validation-for="Category" class="text-danger"></span>
+            <div class="card-footer bg-light text-center py-3">
+                <a asp-action="Index" class="small fw-bold text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
             </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="DataType" class="control-label"></label>
-                <select asp-for="DataType" class="form-control"></select>
-                <span asp-validation-for="DataType" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {

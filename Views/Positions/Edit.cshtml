@@ -1,67 +1,105 @@
 @model Itransition.Models.Positions.Position
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Position";
 }
 
-<h1>Edit</h1>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0 rounded-3 my-4">
+            <div class="card-header bg-dark text-white text-center py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Edit Position</h4>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Edit">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                    <input type="hidden" asp-for="Id" />
 
-<h4>Position</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Title" class="control-label"></label>
-                <input asp-for="Title" class="form-control" />
-                <span asp-validation-for="Title" class="text-danger"></span>
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label fw-semibold">Title</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
+                            <input asp-for="Title" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-semibold">Description</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-card-text"></i></span>
+                            <input asp-for="Description" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Company" class="form-label fw-semibold">Company</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-building"></i></span>
+                                <input asp-for="Company" class="form-control" />
+                            </div>
+                            <span asp-validation-for="Company" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Level" class="form-label fw-semibold">Level</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-bar-chart"></i></span>
+                                <input asp-for="Level" class="form-control" />
+                            </div>
+                            <span asp-validation-for="Level" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="MaxProjectInCv" class="form-label fw-semibold">Max Projects in CV</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-list-task"></i></span>
+                                <input asp-for="MaxProjectInCv" class="form-control" />
+                            </div>
+                            <span asp-validation-for="MaxProjectInCv" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" asp-for="IsPublic" />
+                                <label class="form-check-label fw-semibold" asp-for="IsPublic">Public</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="CreatedDate" class="form-label fw-semibold">Created Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar-plus"></i></span>
+                                <input asp-for="CreatedDate" class="form-control" />
+                            </div>
+                            <span asp-validation-for="CreatedDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="UpdatedDate" class="form-label fw-semibold">Updated Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar-check"></i></span>
+                                <input asp-for="UpdatedDate" class="form-control" />
+                            </div>
+                            <span asp-validation-for="UpdatedDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="bi bi-check-circle me-1"></i>Save Changes
+                    </button>
+                </form>
             </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
+            <div class="card-footer bg-light text-center py-3">
+                <a asp-action="Index" class="small fw-bold text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
             </div>
-            <div class="form-group">
-                <label asp-for="Company" class="control-label"></label>
-                <input asp-for="Company" class="form-control" />
-                <span asp-validation-for="Company" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Level" class="control-label"></label>
-                <input asp-for="Level" class="form-control" />
-                <span asp-validation-for="Level" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="MaxProjectInCv" class="control-label"></label>
-                <input asp-for="MaxProjectInCv" class="form-control" />
-                <span asp-validation-for="MaxProjectInCv" class="text-danger"></span>
-            </div>
-            <div class="form-group form-check">
-                <label class="form-check-label">
-                    <input class="form-check-input" asp-for="IsPublic" /> @Html.DisplayNameFor(model => model.IsPublic)
-                </label>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedDate" class="control-label"></label>
-                <input asp-for="CreatedDate" class="form-control" />
-                <span asp-validation-for="CreatedDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UpdatedDate" class="control-label"></label>
-                <input asp-for="UpdatedDate" class="form-control" />
-                <span asp-validation-for="UpdatedDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {

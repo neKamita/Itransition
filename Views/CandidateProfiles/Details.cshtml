@@ -1,54 +1,383 @@
 @model Itransition.Models.Profiles.CandidateProfile
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Candidate Profile Details";
 }
 
-<h1>Details</h1>
+<div class="card shadow-sm border-0 rounded-3 my-4">
+    <div class="card-header bg-dark text-white py-3">
+        <h4 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2"></i>Candidate Profile</h4>
+    </div>
 
-<div>
-    <h4>CandidateProfile</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.FirstName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.FirstName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.LastName)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.LastName)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Location)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Location)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PersonalPhotoUrl)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PersonalPhotoUrl)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.RowVersion)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.RowVersion)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.User)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.User.Id)
-        </dd>
-    </dl>
+    <div class="card-body p-0">
+        <!-- Tabs Nav -->
+        <ul class="nav nav-tabs nav-fill bg-light border-bottom-0 pt-2 px-2" id="profileTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="me-tab" data-bs-toggle="tab" data-bs-target="#me-pane" type="button" role="tab" aria-controls="me-pane" aria-selected="true">
+                    <i class="bi bi-person me-1"></i>Me
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="info-tab" data-bs-toggle="tab" data-bs-target="#info-pane" type="button" role="tab" aria-controls="info-pane" aria-selected="false">
+                    <i class="bi bi-info-circle me-1"></i>Info
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects-pane" type="button" role="tab" aria-controls="projects-pane" aria-selected="false">
+                    <i class="bi bi-kanban me-1"></i>Projects
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="cvs-tab" data-bs-toggle="tab" data-bs-target="#cvs-pane" type="button" role="tab" aria-controls="cvs-pane" aria-selected="false">
+                    <i class="bi bi-file-earmark-text me-1"></i>CVs
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content p-4" id="profileTabsContent">
+
+            <div class="tab-pane fade show active" id="me-pane" role="tabpanel" aria-labelledby="me-tab" tabindex="0">
+                <div class="row align-items-center mb-4">
+                    <div class="col-md-3 text-center mb-3 mb-md-0">
+                        @if (!string.IsNullOrEmpty(Model.PersonalPhotoUrl))
+                        {
+                            <img src="@Model.PersonalPhotoUrl" alt="Photo" class="img-fluid rounded-circle shadow-sm" style="width: 150px; height: 150px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 150px; height: 150px; font-size: 3.5rem;">
+                                <i class="bi bi-person"></i>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-md-9">
+                        <h3 class="fw-bold mb-1">@Model.FirstName @Model.LastName</h3>
+                        <p class="text-muted mb-3"><i class="bi bi-geo-alt me-1"></i>@(string.IsNullOrEmpty(Model.Location) ? "Location not specified" : Model.Location)</p>
+                        <div class="p-3 bg-light rounded-3 border mb-3">
+                            <p class="mb-0 text-secondary"><strong>Account Email:</strong> @(Model.User?.Email ?? "N/A")</p>
+                        </div>
+                        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">
+                            <i class="bi bi-pencil me-1"></i>Edit Basic Info
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="info-pane" role="tabpanel" aria-labelledby="info-tab" tabindex="0">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">My Attributes</h5>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAttributeModal">
+                        <i class="bi bi-plus-circle me-1"></i>Add Attribute
+                    </button>
+                </div>
+
+                @if (Model.AttributeValues == null || !Model.AttributeValues.Any())
+                {
+                    <div class="alert alert-secondary text-center py-4">
+                        <i class="bi bi-info-circle display-6 d-block mb-2 text-muted"></i>
+                        <p class="mb-0">No attributes added yet. Click "Add Attribute" to enrich your profile.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive border rounded-3">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Name</th>
+                                    <th>Value</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var attr in Model.AttributeValues)
+                                {
+                                    <tr>
+                                        <td><span class="badge bg-secondary">@attr.AttributeDefinition?.Category</span></td>
+                                        <td class="fw-semibold">@attr.AttributeDefinition?.Name</td>
+                                        <td>
+                                            <!-- Simple value display for now, can be made inline-editable -->
+                                            @(string.IsNullOrEmpty(attr.Value) ? Html.Raw("<span class='text-danger'>Empty</span>") : attr.Value)
+                                        </td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-danger" onclick="removeAttribute('@attr.Id')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <div class="tab-pane fade" id="projects-pane" role="tabpanel" aria-labelledby="projects-tab" tabindex="0">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">My Projects</h5>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                        <i class="bi bi-plus-circle me-1"></i>Add Project
+                    </button>
+                </div>
+
+                @{
+                    // Assuming Model.Projects exists, using reflection/dynamic to avoid compile error if it doesn't yet
+                    var projectsProp = Model.GetType().GetProperty("Projects");
+                    IEnumerable<dynamic> projects = projectsProp != null ? (IEnumerable<dynamic>)projectsProp.GetValue(Model)! : new List<dynamic>();
+                }
+
+                @if (!projects.Any())
+                {
+                    <div class="alert alert-secondary text-center py-4">
+                        <i class="bi bi-kanban display-6 d-block mb-2 text-muted"></i>
+                        <p class="mb-0">No projects added yet. Click "Add Project" to showcase your experience.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        @foreach (var proj in projects)
+                        {
+                            <div class="col">
+                                <div class="card h-100 shadow-sm border-0 bg-light">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <h5 class="card-title fw-bold text-primary">@proj.Name</h5>
+                                            <button class="btn btn-sm btn-outline-danger border-0" onclick="removeProject('@proj.Id')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                        <h6 class="card-subtitle mb-2 text-muted small">
+                                            <i class="bi bi-calendar3 me-1"></i>
+                                            @(proj.StartDate?.ToString("MMM yyyy") ?? "N/A") - @(proj.EndDate?.ToString("MMM yyyy") ?? "Present")
+                                        </h6>
+                                        <p class="card-text small mt-2">@proj.Description</p>
+                                        <div class="mt-2">
+                                            @if (proj.TechnologyTags != null)
+                                            {
+                                                foreach (var tag in proj.TechnologyTags)
+                                                {
+                                                    <span class="badge bg-secondary me-1">@tag.TagName</span>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="tab-pane fade" id="cvs-pane" role="tabpanel" aria-labelledby="cvs-tab" tabindex="0">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Generated CVs</h5>
+                    <a asp-controller="Positions" asp-action="Index" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-search me-1"></i>Browse Positions
+                    </a>
+                </div>
+
+                @{
+                    var cvsProp = Model.GetType().GetProperty("Cvs");
+                    IEnumerable<dynamic> cvs = cvsProp != null ? (IEnumerable<dynamic>)cvsProp.GetValue(Model)! : new List<dynamic>();
+                }
+
+                @if (!cvs.Any())
+                {
+                    <div class="alert alert-secondary text-center py-4">
+                        <i class="bi bi-file-earmark-text display-6 d-block mb-2 text-muted"></i>
+                        <p class="mb-0">You haven't generated any CVs yet. Browse positions to create one.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive border rounded-3">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Position</th>
+                                    <th>Status</th>
+                                    <th>Likes</th>
+                                    <th>Generated On</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var cv in cvs)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@cv.Position?.Title</td>
+                                        <td><span class="badge bg-primary">@cv.Status</span></td>
+                                        <td><i class="bi bi-heart-fill text-danger me-1"></i>@cv.LikesCount</td>
+                                        <td class="text-muted small">@cv.CreatedDate.ToString("d")</td>
+                                        <td class="text-end">
+                                            <a asp-controller="Cvs" asp-action="Details" asp-route-id="@cv.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<div class="modal fade" id="addAttributeModal" tabindex="-1" aria-labelledby="addAttributeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="addAttributeModalLabel">Add Attribute to Profile</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">Select Attribute</label>
+            <select class="form-select" id="newAttributeSelect">
+                <option value="">-- Choose from library --</option>
+                <!-- Options will be populated by AJAX in a real implementation -->
+            </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="addAttribute()">Add Attribute</button>
+      </div>
+    </div>
+  </div>
 </div>
+
+<div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="addProjectModalLabel">Add Project</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Project Name</label>
+            <input type="text" class="form-control" id="newProjectName" placeholder="e.g. E-commerce Website">
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="date" class="form-control" id="newProjectStart">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">End Date</label>
+                <input type="date" class="form-control" id="newProjectEnd">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Description</label>
+            <textarea class="form-control" rows="3" id="newProjectDesc" placeholder="Describe your role and the project..."></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Technology Tags</label>
+            <input type="text" class="form-control" id="newProjectTags" placeholder="e.g. C#, .NET, React">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveProject()">Save Project</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+    <script>
+        const profileId = '@Model.Id';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/CandidateProfiles/GetAttributes')
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('newAttributeSelect');
+                    data.forEach(attr => {
+                        const option = document.createElement('option');
+                        option.value = attr.id;
+                        option.textContent = `[${attr.category}] ${attr.name}`;
+                        select.appendChild(option);
+                    });
+                });
+        });
+
+        function addAttribute() {
+            const attrId = document.getElementById('newAttributeSelect').value;
+            if (!attrId) return alert('Please select an attribute');
+            
+            const formData = new FormData();
+            formData.append('profileId', profileId);
+            formData.append('attributeDefinitionId', attrId);
+
+            fetch('/CandidateProfiles/AddAttribute', {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json()).then(data => {
+                if(data.success) location.reload();
+                else alert('Error adding attribute');
+            });
+        }
+
+        function removeAttribute(id) {
+            if(confirm('Are you sure you want to remove this attribute?')) {
+                const formData = new FormData();
+                formData.append('id', id);
+                fetch('/CandidateProfiles/RemoveAttribute', {
+                    method: 'POST',
+                    body: formData
+                }).then(res => res.json()).then(data => {
+                    if(data.success) location.reload();
+                });
+            }
+        }
+
+        function saveProject() {
+            const name = document.getElementById('newProjectName').value;
+            const desc = document.getElementById('newProjectDesc').value;
+            const start = document.getElementById('newProjectStart').value;
+            const end = document.getElementById('newProjectEnd').value;
+            const tags = document.getElementById('newProjectTags').value;
+
+            if (!name) return alert('Name is required');
+
+            const formData = new FormData();
+            formData.append('profileId', profileId);
+            formData.append('name', name);
+            formData.append('description', desc);
+            formData.append('startDate', start);
+            formData.append('endDate', end);
+            formData.append('tags', tags);
+
+            fetch('/CandidateProfiles/AddProject', {
+                method: 'POST',
+                body: formData
+            }).then(async res => {
+                if(!res.ok) {
+                    const text = await res.text();
+                    alert(text || 'Error saving project');
+                } else {
+                    location.reload();
+                }
+            });
+        }
+
+        function removeProject(id) {
+            if(confirm('Are you sure you want to delete this project?')) {
+                const formData = new FormData();
+                formData.append('id', id);
+                fetch('/CandidateProfiles/DeleteProject', {
+                    method: 'POST',
+                    body: formData
+                }).then(res => res.json()).then(data => {
+                    if(data.success) location.reload();
+                });
+            }
+        }
+    </script>
+}

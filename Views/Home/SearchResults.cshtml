@@ -4,39 +4,50 @@
     ViewData["Title"] = "Search Results";
 }
 
-<h1>Search Results</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-search me-2"></i>Search Results</h2>
+</div>
 
 @if (!Model.Any())
 {
-    <div class="alert alert-info">
-        No positions or records found matching your search query.
+    <div class="alert alert-secondary d-flex align-items-center">
+        <i class="bi bi-info-circle me-2 fs-5"></i>
+        <span>No positions or records found matching your search query.</span>
     </div>
 }
 else
 {
-    <table class="table table-striped align-middle mt-3">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Company</th>
-                <th>Level</th>
-                <th>Updated</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model)
-            {
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
                 <tr>
-                    <td>
-                        <a asp-controller="Positions" asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">
-                            @item.Title
-                        </a>
-                    </td>
-                    <td>@item.Company</td>
-                    <td>@item.Level</td>
-                    <td>@item.UpdatedDate</td>
+                    <th>Title</th>
+                    <th>Company</th>
+                    <th>Level</th>
+                    <th>Updated</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <a asp-controller="Positions" asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-primary text-decoration-none">
+                                <i class="bi bi-file-text me-1"></i>@item.Title
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">@item.Company</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info text-dark">@item.Level</span>
+                        </td>
+                        <td class="text-muted small">
+                            @item.UpdatedDate.ToString("g")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }

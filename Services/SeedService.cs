@@ -15,7 +15,6 @@ public class SeedService
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<SeedService>>();
 
-
         try
         {
             logger.LogInformation("Ensuring the databse is created.");
@@ -54,8 +53,6 @@ public class SeedService
                     logger.LogError("An error occurred seeding the database, Error:{}", string.Join(",", result.Errors.Select(x => x.Description)));
                 }
             }
-
-
         }
         catch (Exception ex)
         {

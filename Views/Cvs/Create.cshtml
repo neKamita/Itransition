@@ -1,59 +1,94 @@
 @model Itransition.Models.Cvs.Cv
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create CV";
 }
 
-<h1>Create</h1>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm border-0 rounded-3 my-4">
+            <div class="card-header bg-dark text-white text-center py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-plus me-2"></i>Create CV</h4>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
 
-<h4>Cv</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="CandidateProfileId" class="control-label"></label>
-                <select asp-for="CandidateProfileId" class ="form-control" asp-items="ViewBag.CandidateProfileId"></select>
+                    <div class="mb-3">
+                        <label asp-for="CandidateProfileId" class="form-label fw-semibold">Candidate Profile</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                            <select asp-for="CandidateProfileId" class="form-select" asp-items="ViewBag.CandidateProfileId"></select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="PositionId" class="form-label fw-semibold">Position</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
+                            <select asp-for="PositionId" class="form-select" asp-items="ViewBag.PositionId"></select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Status" class="form-label fw-semibold">Status</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-flag"></i></span>
+                            <input asp-for="Status" class="form-control" />
+                        </div>
+                        <span asp-validation-for="Status" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="LikesCount" class="form-label fw-semibold">Likes</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-heart"></i></span>
+                                <input asp-for="LikesCount" class="form-control" />
+                            </div>
+                            <span asp-validation-for="LikesCount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="DislikesCount" class="form-label fw-semibold">Dislikes</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-heartbreak"></i></span>
+                                <input asp-for="DislikesCount" class="form-control" />
+                            </div>
+                            <span asp-validation-for="DislikesCount" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="CreatedDate" class="form-label fw-semibold">Created Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar-plus"></i></span>
+                                <input asp-for="CreatedDate" class="form-control" />
+                            </div>
+                            <span asp-validation-for="CreatedDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="UpdatedDate" class="form-label fw-semibold">Updated Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar-check"></i></span>
+                                <input asp-for="UpdatedDate" class="form-control" />
+                            </div>
+                            <span asp-validation-for="UpdatedDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="bi bi-check-circle me-1"></i>Create CV
+                    </button>
+                </form>
             </div>
-            <div class="form-group">
-                <label asp-for="PositionId" class="control-label"></label>
-                <select asp-for="PositionId" class ="form-control" asp-items="ViewBag.PositionId"></select>
+            <div class="card-footer bg-light text-center py-3">
+                <a asp-action="Index" class="small fw-bold text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to List
+                </a>
             </div>
-            <div class="form-group">
-                <label asp-for="Status" class="control-label"></label>
-                <input asp-for="Status" class="form-control" />
-                <span asp-validation-for="Status" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="LikesCount" class="control-label"></label>
-                <input asp-for="LikesCount" class="form-control" />
-                <span asp-validation-for="LikesCount" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="DislikesCount" class="control-label"></label>
-                <input asp-for="DislikesCount" class="form-control" />
-                <span asp-validation-for="DislikesCount" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CreatedDate" class="control-label"></label>
-                <input asp-for="CreatedDate" class="form-control" />
-                <span asp-validation-for="CreatedDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UpdatedDate" class="control-label"></label>
-                <input asp-for="UpdatedDate" class="form-control" />
-                <span asp-validation-for="UpdatedDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {
