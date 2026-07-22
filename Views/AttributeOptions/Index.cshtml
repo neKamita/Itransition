@@ -20,28 +20,16 @@
             <tr>
                 <th>Option Value</th>
                 <th>Attribute Category</th>
-                <th class="text-end">Actions</th>
             </tr>
         </thead>
         <tbody>
     @foreach (var item in Model) {
             <tr>
                 <td>
-                    <span class="fw-bold text-dark">@item.Value</span>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">@item.Value</a>
                 </td>
                 <td>
-                    <span class="badge bg-secondary">@(item.AttributeDefinition?.Category ?? "N/A")</span>
-                </td>
-                <td class="text-end">
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm me-1">
-                        <i class="bi bi-eye"></i>
-                    </a>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning btn-sm me-1">
-                        <i class="bi bi-pencil"></i>
-                    </a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm">
-                        <i class="bi bi-trash"></i>
-                    </a>
+                    <span class="badge bg-secondary">@(item.AttributeDefinition?.Category?.Name ?? "N/A")</span>
                 </td>
             </tr>
     }

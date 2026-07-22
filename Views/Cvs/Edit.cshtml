@@ -1,4 +1,4 @@
-@model Itransition.Models.Cvs.Cv
+@model Itransition.ViewModel.CvEditViewModel
 
 @{
     ViewData["Title"] = "Edit CV";
@@ -14,70 +14,34 @@
                 <form asp-action="Edit">
                     <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
                     <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Version" />
 
                     <div class="mb-3">
-                        <label asp-for="CandidateProfileId" class="form-label fw-semibold">Candidate Profile</label>
+                        <label asp-for="CandidateName" class="form-label fw-semibold">Candidate</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-                            <select asp-for="CandidateProfileId" class="form-select" asp-items="ViewBag.CandidateProfileId"></select>
+                            <input asp-for="CandidateName" class="form-control" readonly />
                         </div>
-                        <span asp-validation-for="CandidateProfileId" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="PositionId" class="form-label fw-semibold">Position</label>
+                        <label asp-for="PositionTitle" class="form-label fw-semibold">Position</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
-                            <select asp-for="PositionId" class="form-select" asp-items="ViewBag.PositionId"></select>
+                            <input asp-for="PositionTitle" class="form-control" readonly />
                         </div>
-                        <span asp-validation-for="PositionId" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Status" class="form-label fw-semibold">Status</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-flag"></i></span>
-                            <input asp-for="Status" class="form-control" />
+                            <select asp-for="Status" class="form-select">
+                                <option value="New">New</option>
+                                <option value="Draft">Draft</option>
+                            </select>
                         </div>
                         <span asp-validation-for="Status" class="text-danger small"></span>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="LikesCount" class="form-label fw-semibold">Likes</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-heart"></i></span>
-                                <input asp-for="LikesCount" class="form-control" />
-                            </div>
-                            <span asp-validation-for="LikesCount" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="DislikesCount" class="form-label fw-semibold">Dislikes</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-heartbreak"></i></span>
-                                <input asp-for="DislikesCount" class="form-control" />
-                            </div>
-                            <span asp-validation-for="DislikesCount" class="text-danger small"></span>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="CreatedDate" class="form-label fw-semibold">Created Date</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-calendar-plus"></i></span>
-                                <input asp-for="CreatedDate" class="form-control" />
-                            </div>
-                            <span asp-validation-for="CreatedDate" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="UpdatedDate" class="form-label fw-semibold">Updated Date</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-calendar-check"></i></span>
-                                <input asp-for="UpdatedDate" class="form-control" />
-                            </div>
-                            <span asp-validation-for="UpdatedDate" class="text-danger small"></span>
-                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2">

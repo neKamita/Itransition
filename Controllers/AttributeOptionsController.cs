@@ -24,7 +24,9 @@ namespace Itransition.Controllers
         // GET: AttributeOptions
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.AttributeOptions.Include(a => a.AttributeDefinition);
+            var applicationDbContext = _context.AttributeOptions
+                .Include(a => a.AttributeDefinition)
+                    .ThenInclude(attribute => attribute!.Category);
             return View(await applicationDbContext.ToListAsync());
         }
 
@@ -38,6 +40,7 @@ namespace Itransition.Controllers
 
             var attributeOption = await _context.AttributeOptions
                 .Include(a => a.AttributeDefinition)
+                    .ThenInclude(attribute => attribute!.Category)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (attributeOption == null)
             {
@@ -50,7 +53,7 @@ namespace Itransition.Controllers
         // GET: AttributeOptions/Create
         public IActionResult Create()
         {
-            ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Category");
+            ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Name");
             return View();
         }
 
@@ -68,7 +71,7 @@ namespace Itransition.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Category", attributeOption.AttributeDefinitionId);
+            ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Name", attributeOption.AttributeDefinitionId);
             return View(attributeOption);
         }
 
@@ -85,7 +88,7 @@ namespace Itransition.Controllers
             {
                 return NotFound();
             }
-            ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Category", attributeOption.AttributeDefinitionId);
+            ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Name", attributeOption.AttributeDefinitionId);
             return View(attributeOption);
         }
 
@@ -94,35 +97,48 @@ namespace Itransition.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Value,AttributeDefinitionId")] AttributeOption attributeOption)
+        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Value,AttributeDefinitionId,Version")] AttributeOption attributeOption)
         {
             if (id != attributeOption.Id)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(attributeOption);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!AttributeOptionExists(attributeOption.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Name", attributeOption.AttributeDefinitionId);
+                return View(attributeOption);
             }
-            ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Category", attributeOption.AttributeDefinitionId);
-            return View(attributeOption);
+
+            var optionToUpdate = await _context.AttributeOptions.FindAsync(id);
+            if (optionToUpdate is null)
+            {
+                return NotFound();
+            }
+
+            optionToUpdate.Value = attributeOption.Value;
+            optionToUpdate.AttributeDefinitionId = attributeOption.AttributeDefinitionId;
+            _context.Entry(optionToUpdate).Property(item => item.Version).OriginalValue = attributeOption.Version;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!await _context.AttributeOptions.AnyAsync(item => item.Id == id))
+                {
+                    return NotFound();
+                }
+
+                var databaseValues = await _context.Entry(optionToUpdate).GetDatabaseValuesAsync();
+                attributeOption.Version = databaseValues?.GetValue<uint>(nameof(AttributeOption.Version)) ?? attributeOption.Version;
+                ModelState.AddModelError(string.Empty, "This option was changed by another recruiter. Review your values and submit again.");
+                ViewData["AttributeDefinitionId"] = new SelectList(_context.AttributeDefinitions, "Id", "Name", attributeOption.AttributeDefinitionId);
+                return View(attributeOption);
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: AttributeOptions/Delete/5
@@ -135,6 +151,7 @@ namespace Itransition.Controllers
 
             var attributeOption = await _context.AttributeOptions
                 .Include(a => a.AttributeDefinition)
+                    .ThenInclude(attribute => attribute!.Category)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (attributeOption == null)
             {
@@ -147,15 +164,24 @@ namespace Itransition.Controllers
         // POST: AttributeOptions/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(Guid id)
+        public async Task<IActionResult> DeleteConfirmed(Guid id, uint version)
         {
             var attributeOption = await _context.AttributeOptions.FindAsync(id);
             if (attributeOption != null)
             {
+                _context.Entry(attributeOption).Property(item => item.Version).OriginalValue = version;
                 _context.AttributeOptions.Remove(attributeOption);
             }
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                ModelState.AddModelError(string.Empty, "This option changed before deletion. Reload and try again.");
+                return attributeOption is null ? NotFound() : View("Delete", attributeOption);
+            }
             return RedirectToAction(nameof(Index));
         }
 

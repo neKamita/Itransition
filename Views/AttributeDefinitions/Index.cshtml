@@ -8,6 +8,19 @@
     <h2><i class="bi bi-tags me-2"></i>Attribute Definitions</h2>
 </div>
 
+@if (TempData["AttributeSuccess"] is string successMessage)
+{
+    <div class="alert alert-success" role="status" aria-live="polite">@successMessage</div>
+}
+@if (TempData["AttributeNotice"] is string noticeMessage)
+{
+    <div class="alert alert-info" role="status" aria-live="polite">@noticeMessage</div>
+}
+@if (TempData["AttributeError"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert" aria-live="assertive">@errorMessage</div>
+}
+
 <form id="bulkForm" method="post">
     <div class="mb-3 d-flex gap-2">
         <a asp-action="Create" class="btn btn-primary btn-sm">
@@ -29,7 +42,7 @@
                         @Html.DisplayNameFor(model => model.Name)
                     </th>
                     <th>
-                        @Html.DisplayNameFor(model => model.Category)
+                        Category
                     </th>
                     <th>
                         @Html.DisplayNameFor(model => model.Description)
@@ -44,6 +57,7 @@
                 <tr>
                     <td>
                         <input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input select-item" />
+                        <input type="hidden" name="selectedVersions[@item.Id]" value="@item.Version" />
                     </td>
                     <td>
                         <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-primary text-decoration-none">
@@ -51,7 +65,7 @@
                         </a>
                     </td>
                     <td>
-                        <span class="badge bg-secondary">@item.Category</span>
+                        <span class="badge bg-secondary">@item.Category.Name</span>
                     </td>
                     <td>
                         @Html.DisplayFor(modelItem => item.Description)
@@ -68,7 +82,7 @@
 
 @section Scripts {
     <script>
-        document.getElementById('selectAll').addEventListener('change', function() {
+        document.getElementById('selectAll')?.addEventListener('change', function() {
             var checkboxes = document.querySelectorAll('.select-item');
             for (var checkbox of checkboxes) {
                 checkbox.checked = this.checked;

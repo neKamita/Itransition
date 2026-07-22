@@ -24,7 +24,7 @@
                         </tr>
                         <tr>
                             <th class="text-muted"><i class="bi bi-tag me-1"></i>Attribute</th>
-                            <td><span class="badge bg-secondary">@Html.DisplayFor(model => model.AttributeDefinition.Category)</span></td>
+                            <td><span class="badge bg-secondary">@(Model!.AttributeDefinition?.Category?.Name ?? "N/A")</span></td>
                         </tr>
                     </tbody>
                 </table>
@@ -35,6 +35,7 @@
                 </a>
                 <form asp-action="Delete">
                     <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Version" />
                     <button type="submit" class="btn btn-danger">
                         <i class="bi bi-trash me-1"></i>Confirm Delete
                     </button>

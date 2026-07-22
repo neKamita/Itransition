@@ -17,6 +17,7 @@ jobs:
   build:
     name: Restore and build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -28,7 +29,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore
-        run: dotnet restore Itransition.csproj
+        run: dotnet restore Itransition.csproj --disable-parallel
 
       - name: Build
-        run: dotnet build Itransition.csproj --configuration Release --no-restore
+        run: dotnet build Itransition.csproj --configuration Release --no-restore --maxcpucount:1 --disable-build-servers -p:UseSharedCompilation=false

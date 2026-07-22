@@ -1,8 +1,21 @@
 @model Itransition.Models.Profiles.CandidateProfile
+@inject Itransition.Services.IMarkdownRenderer MarkdownRenderer
+@using Itransition.Models.Attributes
+@using Microsoft.Extensions.Options
+@inject IOptions<Itransition.Services.CloudUploadOptions> CloudUpload
 
 @{
     ViewData["Title"] = "Candidate Profile Details";
+    var customAttributes = Model!.AttributeValues
+        .Where(value => value.AttributeDefinition is { IsBuiltIn: false })
+        .OrderBy(value => value.AttributeDefinition.Category?.Name ?? "Uncategorized")
+        .ThenBy(value => value.AttributeDefinition.Name)
+        .ToList();
 }
+
+<div class="d-none" aria-hidden="true">
+    @Html.AntiForgeryToken()
+</div>
 
 <div class="card shadow-sm border-0 rounded-3 my-4">
     <div class="card-header bg-dark text-white py-3">
@@ -63,14 +76,23 @@
                 </div>
             </div>
             <div class="tab-pane fade" id="info-pane" role="tabpanel" aria-labelledby="info-tab" tabindex="0">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <h5 class="fw-bold mb-0">My Attributes</h5>
-                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAttributeModal">
-                        <i class="bi bi-plus-circle me-1"></i>Add Attribute
-                    </button>
+                    <div class="d-flex flex-wrap gap-2 action-bar">
+                        <button id="saveSelectedAttributes" type="button" class="btn btn-sm btn-outline-primary" disabled>
+                            <i class="bi bi-check2-all me-1" aria-hidden="true"></i>Save selected
+                        </button>
+                        <button id="removeSelectedAttributes" type="button" class="btn btn-sm btn-outline-danger" disabled>
+                            <i class="bi bi-trash me-1" aria-hidden="true"></i>Remove selected
+                        </button>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addAttributeModal">
+                            <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Add Attribute
+                        </button>
+                    </div>
                 </div>
+                <div id="attributeBatchNotice" class="alert d-none" role="status" aria-live="polite"></div>
 
-                @if (Model.AttributeValues == null || !Model.AttributeValues.Any())
+                @if (!customAttributes.Any())
                 {
                     <div class="alert alert-secondary text-center py-4">
                         <i class="bi bi-info-circle display-6 d-block mb-2 text-muted"></i>
@@ -83,22 +105,29 @@
                         <table class="table table-hover mb-0 align-middle">
                             <thead class="table-light">
                                 <tr>
+                                    <th scope="col" class="text-center" style="width: 3rem;">
+                                        <input id="selectAllAttributes" class="form-check-input" type="checkbox" aria-label="Select all profile attributes" />
+                                    </th>
                                     <th>Category</th>
                                     <th>Name</th>
                                     <th>Value</th>
-                                    <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var attr in Model.AttributeValues)
+                                @foreach (var attr in customAttributes)
                                 {
-                                    <tr>
-                                        <td><span class="badge bg-secondary">@attr.AttributeDefinition?.Category</span></td>
-                                        <td class="fw-semibold">@attr.AttributeDefinition?.Name</td>
+                                    var definition = attr.AttributeDefinition!;
+                                    var inputId = $"val_{attr.Id:N}";
+                                    <tr data-attribute-row data-id="@attr.Id" data-version="@attr.Version" data-type="@definition.DataType">
+                                        <td class="text-center">
+                                            <input class="form-check-input attribute-row-selector" type="checkbox" aria-label="Select @definition.Name" />
+                                        </td>
+                                        <td><span class="badge bg-secondary">@(definition.Category?.Name ?? "Uncategorized")</span></td>
+                                        <td class="fw-semibold">@definition.Name</td>
                                         <td>
                                             @if (attr.AttributeDefinition?.DataType == Itransition.Models.Attributes.AttributeDataType.Dropdown)
                                             {
-                                                <select id="val_@attr.Id" class="form-select form-select-sm">
+                                                <select id="@inputId" class="form-select form-select-sm" data-attribute-value>
                                                     <option value="">-- Select --</option>
                                                     @if (attr.AttributeDefinition.Options != null)
                                                     {
@@ -119,21 +148,44 @@
                                             else if (attr.AttributeDefinition?.DataType == Itransition.Models.Attributes.AttributeDataType.Boolean)
                                             {
                                                 <div class="form-check">
-                                                    <input id="val_@attr.Id" class="form-check-input" type="checkbox" @(attr.Value == "true" ? "checked" : "")>
+                                                    <input id="@inputId" class="form-check-input" type="checkbox" data-attribute-value @(attr.Value == "true" ? "checked" : "")>
                                                 </div>
+                                            }
+                                            else if (attr.AttributeDefinition?.DataType == AttributeDataType.MarkdownText)
+                                            {
+                                                <textarea id="@inputId" class="form-control form-control-sm" rows="3" maxlength="10000" data-attribute-value>@attr.Value</textarea>
+                                            }
+                                            else if (attr.AttributeDefinition?.DataType == AttributeDataType.ImageReference)
+                                            {
+                                                <input id="@inputId" type="url" class="form-control form-control-sm mb-2" value="@attr.Value" maxlength="2048" placeholder="https://…" data-attribute-value />
+                                                <div class="cloud-image-dropzone"
+                                                     tabindex="0"
+                                                     role="button"
+                                                     aria-label="Upload @attr.AttributeDefinition.Name"
+                                                     data-cloud-image-upload
+                                                     data-target="#@inputId"
+                                                     data-cloud-name="@CloudUpload.Value.CloudName"
+                                                     data-upload-preset="@CloudUpload.Value.UploadPreset">
+                                                    <input type="file" accept="image/*" class="d-none" />
+                                                    <img class="rounded d-none" data-upload-preview alt="@attr.AttributeDefinition.Name preview" />
+                                                    <div>
+                                                        <div class="small fw-semibold">Drop an image or choose a file</div>
+                                                        <div class="small text-muted" data-upload-status aria-live="polite">Up to 10 MB.</div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else if (attr.AttributeDefinition?.DataType == AttributeDataType.Numeric)
+                                            {
+                                                <input id="@inputId" type="number" step="any" class="form-control form-control-sm" value="@attr.Value" data-attribute-value />
+                                            }
+                                            else if (attr.AttributeDefinition?.DataType == AttributeDataType.Date)
+                                            {
+                                                <input id="@inputId" type="date" class="form-control form-control-sm" value="@attr.Value" data-attribute-value />
                                             }
                                             else
                                             {
-                                                <input id="val_@attr.Id" type="text" class="form-control form-control-sm" value="@attr.Value" placeholder="Empty" />
+                                                <input id="@inputId" type="text" class="form-control form-control-sm" value="@attr.Value" maxlength="1000" placeholder="Empty" data-attribute-value />
                                             }
-                                        </td>
-                                        <td class="text-end">
-                                            <button class="btn btn-sm btn-outline-success me-1" onclick="saveRow('@attr.Id', '@attr.AttributeDefinition?.DataType')">
-                                                <i class="bi bi-check-lg"></i> Save
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="removeAttribute('@attr.Id')">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
                                         </td>
                                     </tr>
                                 }
@@ -152,9 +204,10 @@
                 </div>
 
                 @{
-                    // Assuming Model.Projects exists, using reflection/dynamic to avoid compile error if it doesn't yet
-                    var projectsProp = Model.GetType().GetProperty("Projects");
-                    IEnumerable<dynamic> projects = projectsProp != null ? (IEnumerable<dynamic>)projectsProp.GetValue(Model)! : new List<dynamic>();
+                    var projects = (Model!.Projects ?? [])
+                        .OrderByDescending(project => project.EndDate ?? DateTime.MaxValue)
+                        .ThenByDescending(project => project.StartDate)
+                        .ToList();
                 }
 
                 @if (!projects.Any())
@@ -175,10 +228,10 @@
                                         <div class="d-flex justify-content-between">
                                             <h5 class="card-title fw-bold text-primary">@proj.Name</h5>
                                             <div>
-                                                <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="openEditProjectModal('@proj.Id', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode((string)proj.Name))', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode((string)proj.Description ?? ""))', '@(proj.StartDate?.ToString("yyyy-MM-dd"))', '@(proj.EndDate?.ToString("yyyy-MM-dd"))', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(string.Join(", ", ((IEnumerable<dynamic>)proj.TechnologyTags).Select(t => (string)t.TagName))))')">
+                                                <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="openEditProjectModal('@proj.Id', '@proj.Version', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(proj.Name))', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(proj.Description ?? ""))', '@(proj.StartDate?.ToString("yyyy-MM-dd"))', '@(proj.EndDate?.ToString("yyyy-MM-dd"))', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(string.Join(", ", (proj.TechnologyTags ?? []).Select(tag => tag.TagName))))')" aria-label="Edit project @proj.Name">
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
-                                                <button class="btn btn-sm btn-outline-danger border-0" onclick="removeProject('@proj.Id')">
+                                                <button class="btn btn-sm btn-outline-danger border-0" onclick="removeProject('@proj.Id', '@proj.Version')" aria-label="Delete project @proj.Name">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </div>
@@ -187,7 +240,7 @@
                                             <i class="bi bi-calendar3 me-1"></i>
                                             @(proj.StartDate?.ToString("MMM yyyy") ?? "N/A") - @(proj.EndDate?.ToString("MMM yyyy") ?? "Present")
                                         </h6>
-                                        <p class="card-text small mt-2">@proj.Description</p>
+                                        <div class="card-text small mt-2 markdown-content">@Html.Raw(MarkdownRenderer.Render((string?)proj.Description))</div>
                                         <div class="mt-2">
                                             @if (proj.TechnologyTags != null)
                                             {
@@ -214,8 +267,7 @@
                 </div>
 
                 @{
-                    var cvsProp = Model.GetType().GetProperty("Cvs");
-                    IEnumerable<dynamic> cvs = cvsProp != null ? (IEnumerable<dynamic>)cvsProp.GetValue(Model)! : new List<dynamic>();
+                    var cvs = Model.Cvs.OrderByDescending(cv => cv.UpdatedDate).ToList();
                 }
 
                 @if (!cvs.Any())
@@ -235,22 +287,18 @@
                                     <th>Status</th>
                                     <th>Likes</th>
                                     <th>Generated On</th>
-                                    <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var cv in cvs)
                                 {
                                     <tr>
-                                        <td class="fw-semibold">@cv.Position?.Title</td>
+                                        <td class="fw-semibold">
+                                            <a asp-controller="Cvs" asp-action="Details" asp-route-id="@cv.Id" class="text-decoration-none">@cv.Position?.Title</a>
+                                        </td>
                                         <td><span class="badge bg-primary">@cv.Status</span></td>
                                         <td><i class="bi bi-heart-fill text-danger me-1"></i>@cv.LikesCount</td>
                                         <td class="text-muted small">@cv.CreatedDate.ToString("d")</td>
-                                        <td class="text-end">
-                                            <a asp-controller="Cvs" asp-action="Details" asp-route-id="@cv.Id" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i> View
-                                            </a>
-                                        </td>
                                     </tr>
                                 }
                             </tbody>
@@ -270,12 +318,31 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div class="row g-3 mb-3">
+            <div class="col-sm-8">
+                <label for="profileAttributeCategory" class="form-label">Category</label>
+                <select class="form-select" id="profileAttributeCategory">
+                    <option value="">All categories</option>
+                </select>
+            </div>
+            <div class="col-sm-4 d-flex align-items-end">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="profileRecentAttributes">
+                    <label class="form-check-label" for="profileRecentAttributes">Recently used</label>
+                </div>
+            </div>
+        </div>
         <div class="mb-3">
-            <label class="form-label">Select Attribute</label>
-            <select class="form-select" id="newAttributeSelect">
+            <label class="form-label" for="newAttributeSelect">Search by prefix</label>
+            <select class="form-select"
+                    id="newAttributeSelect"
+                    data-attribute-lookup
+                    data-profile-id="@Model.Id"
+                    data-category-selector="#profileAttributeCategory"
+                    data-recent-selector="#profileRecentAttributes">
                 <option value="">-- Choose from library --</option>
-                <!-- Options will be populated by AJAX in a real implementation -->
             </select>
+            <div class="form-text">Start typing an attribute name, or filter by category and recent use.</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -296,7 +363,7 @@
       <div class="modal-body">
         <div class="mb-3">
             <label class="form-label fw-semibold">Project Name</label>
-            <input type="text" class="form-control" id="newProjectName" placeholder="e.g. E-commerce Website">
+            <input type="text" class="form-control" id="newProjectName" maxlength="200" placeholder="e.g. E-commerce Website">
         </div>
         <div class="row mb-3">
             <div class="col-md-6">
@@ -310,11 +377,11 @@
         </div>
         <div class="mb-3">
             <label class="form-label fw-semibold">Description</label>
-            <textarea class="form-control" rows="3" id="newProjectDesc" placeholder="Describe your role and the project..."></textarea>
+            <textarea class="form-control" rows="3" id="newProjectDesc" maxlength="10000" placeholder="Markdown is supported. Describe your role and the project..."></textarea>
         </div>
         <div class="mb-3">
             <label class="form-label fw-semibold">Technology Tags</label>
-            <input type="text" class="form-control" id="newProjectTags" placeholder="e.g. C#, .NET, React">
+            <input type="text" class="form-control" id="newProjectTags" data-tag-autocomplete placeholder="e.g. C#, .NET, React">
         </div>
       </div>
       <div class="modal-footer">
@@ -334,9 +401,10 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="editProjectId">
+        <input type="hidden" id="editProjectVersion">
         <div class="mb-3">
             <label class="form-label fw-semibold">Project Name</label>
-            <input type="text" class="form-control" id="editProjectName" placeholder="e.g. E-commerce Website">
+            <input type="text" class="form-control" id="editProjectName" maxlength="200" placeholder="e.g. E-commerce Website">
         </div>
         <div class="row mb-3">
             <div class="col-md-6">
@@ -350,11 +418,11 @@
         </div>
         <div class="mb-3">
             <label class="form-label fw-semibold">Description</label>
-            <textarea class="form-control" rows="3" id="editProjectDesc" placeholder="Describe your role and the project..."></textarea>
+            <textarea class="form-control" rows="3" id="editProjectDesc" maxlength="10000" placeholder="Markdown is supported. Describe your role and the project..."></textarea>
         </div>
         <div class="mb-3">
             <label class="form-label fw-semibold">Technology Tags</label>
-            <input type="text" class="form-control" id="editProjectTags" placeholder="e.g. C#, .NET, React">
+            <input type="text" class="form-control" id="editProjectTags" data-tag-autocomplete placeholder="e.g. C#, .NET, React">
         </div>
       </div>
       <div class="modal-footer">
@@ -368,26 +436,19 @@
 @section Scripts {
     <script>
         const profileId = '@Model.Id';
+        const antiForgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fetch('/CandidateProfiles/GetAttributes')
-                .then(res => res.json())
-                .then(data => {
-                    const select = document.getElementById('newAttributeSelect');
-                    data.forEach(attr => {
-                        const option = document.createElement('option');
-                        option.value = attr.id;
-                        option.textContent = `[${attr.category}] ${attr.name}`;
-                        select.appendChild(option);
-                    });
-                });
-        });
+        function createSecureFormData() {
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', antiForgeryToken);
+            return formData;
+        }
 
         function addAttribute() {
             const attrId = document.getElementById('newAttributeSelect').value;
             if (!attrId) return alert('Please select an attribute');
 
-            const formData = new FormData();
+            const formData = createSecureFormData();
             formData.append('profileId', profileId);
             formData.append('attributeDefinitionId', attrId);
 
@@ -400,53 +461,116 @@
             });
         }
 
-        function removeAttribute(id) {
-            if(confirm('Are you sure you want to remove this attribute?')) {
-                const formData = new FormData();
-                formData.append('id', id);
-                fetch('/CandidateProfiles/RemoveAttribute', {
-                    method: 'POST',
-                    body: formData
-                }).then(res => res.json()).then(data => {
-                    if(data.success) location.reload();
-                });
+        const attributeRows = Array.from(document.querySelectorAll('[data-attribute-row]'));
+        const selectAllAttributes = document.getElementById('selectAllAttributes');
+        const saveSelectedButton = document.getElementById('saveSelectedAttributes');
+        const removeSelectedButton = document.getElementById('removeSelectedAttributes');
+        const attributeBatchNotice = document.getElementById('attributeBatchNotice');
+
+        function selectedAttributeRows() {
+            return attributeRows.filter(row => row.querySelector('.attribute-row-selector')?.checked);
+        }
+
+        function updateAttributeToolbar() {
+            const selectedRows = selectedAttributeRows();
+            const selectedCount = selectedRows.length;
+            const uploadInProgress = selectedRows.some(row => row.dataset.uploadBusy === 'true');
+            if (saveSelectedButton) saveSelectedButton.disabled = selectedCount === 0 || uploadInProgress;
+            if (removeSelectedButton) removeSelectedButton.disabled = selectedCount === 0 || uploadInProgress;
+            if (selectAllAttributes) {
+                selectAllAttributes.checked = selectedCount > 0 && selectedCount === attributeRows.length;
+                selectAllAttributes.indeterminate = selectedCount > 0 && selectedCount < attributeRows.length;
             }
         }
 
-        function saveRow(id, dataType) {
-            const input = document.getElementById('val_' + id);
-            let value = '';
-            if (dataType === 'Boolean') {
-                value = input.checked ? 'true' : 'false';
-            } else {
-                value = input.value;
-            }
-            
-            const btn = event.currentTarget;
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="bi bi-hourglass"></i>';
-            btn.disabled = true;
+        function showAttributeBatchNotice(message, isError) {
+            if (!attributeBatchNotice) return;
+            attributeBatchNotice.textContent = message;
+            attributeBatchNotice.className = `alert ${isError ? 'alert-danger' : 'alert-success'}`;
+            attributeBatchNotice.setAttribute('role', isError ? 'alert' : 'status');
+        }
 
-            const formData = new FormData();
-            formData.append('id', id);
-            formData.append('value', value);
-            fetch('/CandidateProfiles/UpdateAttributeValue', {
+        function getAttributeValue(row) {
+            const input = row.querySelector('[data-attribute-value]');
+            return row.dataset.type === 'Boolean'
+                ? (input.checked ? 'true' : 'false')
+                : input.value;
+        }
+
+        async function postAttributeBatch(url, body) {
+            const response = await fetch(url, {
                 method: 'POST',
-                body: formData
-            }).then(res => res.json()).then(data => {
-                btn.innerHTML = '<i class="bi bi-check-lg"></i> Saved';
-                btn.classList.replace('btn-outline-success', 'btn-success');
-                setTimeout(() => {
-                    btn.innerHTML = originalHtml;
-                    btn.classList.replace('btn-success', 'btn-outline-success');
-                    btn.disabled = false;
-                }, 2000);
-            }).catch(() => {
-                alert('Error saving data');
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': antiForgeryToken
+                },
+                body: JSON.stringify(body)
             });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error(payload?.error || 'The selected attributes could not be updated.');
+            }
+            return payload;
         }
+
+        selectAllAttributes?.addEventListener('change', () => {
+            attributeRows.forEach(row => {
+                row.querySelector('.attribute-row-selector').checked = selectAllAttributes.checked;
+            });
+            updateAttributeToolbar();
+        });
+        attributeRows.forEach(row => {
+            row.querySelector('.attribute-row-selector')?.addEventListener('change', updateAttributeToolbar);
+            row.querySelector('[data-attribute-value]')?.addEventListener('change', () => {
+                row.querySelector('.attribute-row-selector').checked = true;
+                updateAttributeToolbar();
+            });
+        });
+        document.addEventListener('cloud-upload-state', updateAttributeToolbar);
+
+        saveSelectedButton?.addEventListener('click', async () => {
+            const rows = selectedAttributeRows();
+            saveSelectedButton.disabled = true;
+            removeSelectedButton.disabled = true;
+            try {
+                const payload = await postAttributeBatch('/CandidateProfiles/UpdateSelectedAttributes', {
+                    profileId,
+                    items: rows.map(row => ({
+                        id: row.dataset.id,
+                        value: getAttributeValue(row),
+                        version: Number(row.dataset.version)
+                    }))
+                });
+                rows.forEach(row => {
+                    row.dataset.version = payload.versions[row.dataset.id];
+                    row.querySelector('.attribute-row-selector').checked = false;
+                });
+                showAttributeBatchNotice('Selected attributes were saved.', false);
+            } catch (error) {
+                showAttributeBatchNotice(error instanceof Error ? error.message : 'Save failed.', true);
+            } finally {
+                updateAttributeToolbar();
+            }
+        });
+
+        removeSelectedButton?.addEventListener('click', async () => {
+            const rows = selectedAttributeRows();
+            if (!confirm(`Remove ${rows.length} selected attribute${rows.length === 1 ? '' : 's'}?`)) return;
+            saveSelectedButton.disabled = true;
+            removeSelectedButton.disabled = true;
+            try {
+                await postAttributeBatch('/CandidateProfiles/RemoveSelectedAttributes', {
+                    profileId,
+                    items: rows.map(row => ({ id: row.dataset.id, version: Number(row.dataset.version) }))
+                });
+                rows.forEach(row => row.remove());
+                showAttributeBatchNotice('Selected attributes were removed.', false);
+                window.setTimeout(() => location.reload(), 700);
+            } catch (error) {
+                showAttributeBatchNotice(error instanceof Error ? error.message : 'Delete failed.', true);
+                updateAttributeToolbar();
+            }
+        });
 
         function saveProject() {
             const name = document.getElementById('newProjectName').value;
@@ -457,7 +581,7 @@
 
             if (!name) return alert('Name is required');
 
-            const formData = new FormData();
+            const formData = createSecureFormData();
             formData.append('profileId', profileId);
             formData.append('name', name);
             formData.append('description', desc);
@@ -478,18 +602,30 @@
             });
         }
 
-        function openEditProjectModal(id, name, desc, start, end, tags) {
+        function openEditProjectModal(id, version, name, desc, start, end, tags) {
             document.getElementById('editProjectId').value = id;
+            document.getElementById('editProjectVersion').value = version;
             document.getElementById('editProjectName').value = name;
             document.getElementById('editProjectDesc').value = desc;
             document.getElementById('editProjectStart').value = start;
             document.getElementById('editProjectEnd').value = end;
-            document.getElementById('editProjectTags').value = tags;
+            const tagsInput = document.getElementById('editProjectTags');
+            if (tagsInput.tomselect) {
+                const values = tags.split(',').map(tag => tag.trim()).filter(Boolean);
+                tagsInput.tomselect.clear(true);
+                for (const value of values) {
+                    tagsInput.tomselect.addOption({ value, text: value });
+                }
+                tagsInput.tomselect.setValue(values, true);
+            } else {
+                tagsInput.value = tags;
+            }
             new bootstrap.Modal(document.getElementById('editProjectModal')).show();
         }
 
         function updateProject() {
             const id = document.getElementById('editProjectId').value;
+            const version = document.getElementById('editProjectVersion').value;
             const name = document.getElementById('editProjectName').value;
             const desc = document.getElementById('editProjectDesc').value;
             const start = document.getElementById('editProjectStart').value;
@@ -498,8 +634,9 @@
 
             if (!name) return alert('Name is required');
 
-            const formData = new FormData();
+            const formData = createSecureFormData();
             formData.append('id', id);
+            formData.append('version', version);
             formData.append('name', name);
             formData.append('description', desc);
             formData.append('startDate', start);
@@ -519,10 +656,11 @@
             });
         }
 
-        function removeProject(id) {
+        function removeProject(id, version) {
             if(confirm('Are you sure you want to delete this project?')) {
-                const formData = new FormData();
+                const formData = createSecureFormData();
                 formData.append('id', id);
+                formData.append('version', version);
                 fetch('/CandidateProfiles/DeleteProject', {
                     method: 'POST',
                     body: formData

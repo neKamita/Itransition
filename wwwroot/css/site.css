@@ -2,6 +2,52 @@ html {
   font-size: 14px;
 }
 
+.markdown-content > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content img,
+.attribute-image-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 20rem;
+  object-fit: contain;
+  border-radius: 0.5rem;
+}
+
+.cloud-image-dropzone {
+  align-items: center;
+  background: var(--bs-light);
+  border: 2px dashed var(--bs-border-color);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  gap: 0.75rem;
+  min-height: 88px;
+  padding: 0.75rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.cloud-image-dropzone:hover,
+.cloud-image-dropzone:focus-visible,
+.cloud-image-dropzone.is-dragging {
+  background: var(--bs-primary-bg-subtle);
+  border-color: var(--bs-primary);
+  outline: none;
+}
+
+.cloud-image-dropzone.is-uploading {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.cloud-image-dropzone [data-upload-preview] {
+  flex: 0 0 64px;
+  height: 64px;
+  object-fit: cover;
+  width: 64px;
+}
+
 @media (min-width: 768px) {
   html {
     font-size: 16px;
@@ -19,6 +65,67 @@ html {
 
 body {
   margin-bottom: 60px;
+  background: #f6f8fb;
+  color: #212529;
+}
+
+.stat-card {
+  border-radius: 0.875rem;
+}
+
+.stat-card__icon {
+  font-size: 1.5rem;
+}
+
+.stat-card__value {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 0.5rem;
+}
+
+.tag-cloud a {
+  min-height: 44px;
+  align-items: center;
+  display: inline-flex;
+  padding-inline: 0.9rem;
+}
+
+.alert {
+  border: 0;
+  border-left: 0.25rem solid currentColor;
+  border-radius: 0.75rem;
+  box-shadow: 0 0.25rem 1rem rgba(33, 37, 41, 0.08);
+}
+
+.cv-notice-icon {
+  align-items: center;
+  background: var(--bs-warning-bg-subtle);
+  border: 1px solid var(--bs-warning-border-subtle);
+  border-radius: 50%;
+  color: var(--bs-warning-text-emphasis);
+  display: inline-flex;
+  flex: 0 0 2.75rem;
+  font-size: 1.25rem;
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
+}
+
+.action-bar .btn,
+.action-bar button,
+.action-bar select {
+  min-height: 44px;
+}
+
+button,
+.btn,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {

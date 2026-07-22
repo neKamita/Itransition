@@ -24,6 +24,8 @@ appsettings.*.local.json
 !.env.example
 secrets.dev.yaml
 values.dev.yaml
+.secrets/
+ionos.md
 
 # User-specific IDE files
 .vs/

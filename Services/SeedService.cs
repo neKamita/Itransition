@@ -1,260 +1,442 @@
 using Itransition.Data;
 using Itransition.Models;
+using Itransition.Models.Attributes;
+using Itransition.Models.Cvs;
+using Itransition.Models.Positions;
+using Itransition.Models.Profiles;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Itransition.Services;
 
-public class SeedService
+public static class SeedService
 {
-    public static async Task SeedDataBase(IServiceProvider serviceProvider)
+    public static async Task SeedDatabaseAsync(
+        IServiceProvider serviceProvider,
+        IHostEnvironment environment)
     {
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<SeedService>>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<SeedServiceMarker>>();
 
         try
         {
-            logger.LogInformation("Ensuring the databse is created.");
+            logger.LogInformation("Applying pending database migrations.");
             await context.Database.MigrateAsync();
 
-            logger.LogInformation("Ensuring Roles are created.");
-            await AddRoleAsync(roleManager,"Administrator");
-            await AddRoleAsync(roleManager,"Recruiter");
-            await AddRoleAsync(roleManager, "Candidate");
+            await EnsureRoleAsync(roleManager, "Administrator");
+            await EnsureRoleAsync(roleManager, "Recruiter");
+            await EnsureRoleAsync(roleManager, "Candidate");
 
-            logger.LogInformation("Ensuring Admin is created.");
-            var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-            var adminEmail = config["AdminConfiguration:Email"];
-            var adminPassword = config["AdminConfiguration:Password"];
+            await EnsureConfiguredUserAsync(
+                userManager,
+                configuration,
+                environment,
+                logger,
+                "AdminConfiguration",
+                "Administrator",
+                "Administrator");
+            await EnsureConfiguredUserAsync(
+                userManager,
+                configuration,
+                environment,
+                logger,
+                "RecruiterConfiguration",
+                "Recruiter",
+                "Recruiter");
 
-            if (await userManager.FindByEmailAsync(adminEmail) == null)
+            var demoSeedEnabled = environment.IsDevelopment()
+                && configuration.GetValue<bool>("SeedData:Enabled");
+            if (!demoSeedEnabled)
             {
-                var AdminUser = new ApplicationUser{
-                    FullName = "Admin",
-                    UserName = adminEmail,
-                    NormalizedUserName = adminEmail.ToUpper(),
-                    Email = adminEmail,
-                    NormalizedEmail = adminEmail.ToUpper(),
-                    EmailConfirmed = true,
-                    SecurityStamp = Guid.NewGuid().ToString()
-                };
-
-                var result = await userManager.CreateAsync(AdminUser, adminPassword);
-                if (result.Succeeded)
-                {
-                    logger.LogInformation("Assigning Admin role to User.");
-                    await userManager.AddToRoleAsync(AdminUser, "Administrator");
-                }
-                else
-                {
-                    logger.LogError("An error occurred seeding the database, Error:{}", string.Join(",", result.Errors.Select(x => x.Description)));
-                }
+                logger.LogInformation("Demo data seed is disabled.");
+                return;
             }
 
-            logger.LogInformation("Generating Fake Data...");
-
-            if (await userManager.FindByEmailAsync("recruiter@test.com") == null)
-            {
-                var recruiter = new ApplicationUser { FullName = "Test Recruiter", UserName = "recruiter@test.com", Email = "recruiter@test.com", EmailConfirmed = true, NormalizedEmail = "RECRUITER@TEST.COM", NormalizedUserName = "RECRUITER@TEST.COM" };
-                await userManager.CreateAsync(recruiter, "Test1234!");
-                await userManager.AddToRoleAsync(recruiter, "Recruiter");
-            }
-            if (await userManager.FindByEmailAsync("candidate@test.com") == null)
-            {
-                var candidate = new ApplicationUser { FullName = "Test Candidate", UserName = "candidate@test.com", Email = "candidate@test.com", EmailConfirmed = true, NormalizedEmail = "CANDIDATE@TEST.COM", NormalizedUserName = "CANDIDATE@TEST.COM" };
-                await userManager.CreateAsync(candidate, "Test1234!");
-                await userManager.AddToRoleAsync(candidate, "Candidate");
-            }
-
-            if (!context.AttributeDefinitions.Any())
-            {
-                var englishAttr = new Itransition.Models.Attributes.AttributeDefinition
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "English Level",
-                    Category = "Language",
-                    DataType = Itransition.Models.Attributes.AttributeDataType.Dropdown,
-                    Options = new List<Itransition.Models.Attributes.AttributeOption>
-                    {
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "A1" },
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "A2" },
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "B1" },
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "B2" },
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "C1" },
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "C2" }
-                    }
-                };
-
-                var expAttr = new Itransition.Models.Attributes.AttributeDefinition
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "Years of Experience",
-                    Category = "Professional",
-                    DataType = Itransition.Models.Attributes.AttributeDataType.String
-                };
-
-                var skillAttr = new Itransition.Models.Attributes.AttributeDefinition
-                {
-                    Id = Guid.NewGuid(),
-                    Name = "Primary Language",
-                    Category = "Technical",
-                    DataType = Itransition.Models.Attributes.AttributeDataType.Dropdown,
-                    Options = new List<Itransition.Models.Attributes.AttributeOption>
-                    {
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "C#" },
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "Java" },
-                        new Itransition.Models.Attributes.AttributeOption { Id = Guid.NewGuid(), Value = "JavaScript" }
-                    }
-                };
-
-                context.AttributeDefinitions.AddRange(englishAttr, expAttr, skillAttr);
-                await context.SaveChangesAsync();
-            }
-            if (!context.Positions.Any())
-            {
-                var attrs = context.AttributeDefinitions.ToList();
-                var engAttr = attrs.FirstOrDefault(a => a.Name == "English Level");
-                var skillAttr = attrs.FirstOrDefault(a => a.Name == "Primary Language");
-
-                var pos1 = new Itransition.Models.Positions.Position
-                {
-                    Id = Guid.NewGuid(),
-                    Title = "Senior C# Developer",
-                    Company = "Tech Corp",
-                    Level = "Senior",
-                    IsPublic = true,
-                    MaxProjectInCv = 5,
-                    Tags = "C#, .NET, Azure, SQL",
-                    Description = "Looking for an experienced C# developer to lead our backend team.",
-                    PositionRequiredAttributes = new List<Itransition.Models.Positions.PositionAttribute>()
-                };
-
-                if (engAttr != null)
-                {
-                    pos1.PositionRequiredAttributes.Add(new Itransition.Models.Positions.PositionAttribute
-                    {
-                        Id = Guid.NewGuid(),
-                        PositionId = pos1.Id,
-                        Position = null!,
-                        AttributeDefinitionId = engAttr.Id,
-                        AttributeDefinition = null!
-                    });
-                }
-
-                if (skillAttr != null)
-                {
-                    pos1.PositionRequiredAttributes.Add(new Itransition.Models.Positions.PositionAttribute
-                    {
-                        Id = Guid.NewGuid(),
-                        PositionId = pos1.Id,
-                        Position = null!,
-                        AttributeDefinitionId = skillAttr.Id,
-                        AttributeDefinition = null!
-                    });
-                }
-
-                var pos2 = new Itransition.Models.Positions.Position
-                {
-                    Id = Guid.NewGuid(),
-                    Title = "React Frontend Engineer",
-                    Company = "WebStudio",
-                    Level = "Middle",
-                    IsPublic = false,
-                    MaxProjectInCv = 3,
-                    Tags = "React, TypeScript, Redux, CSS",
-                    Description = "Join us to build amazing UIs using React.",
-                    PositionAccessRules = new List<Itransition.Models.Positions.PositionAccessRule>()
-                };
-
-                if (engAttr != null)
-                {
-                    pos2.PositionAccessRules.Add(new Itransition.Models.Positions.PositionAccessRule
-                    {
-                        Id = Guid.NewGuid(),
-                        PositionId = pos2.Id,
-                        Position = null!,
-                        AttributeDefinitionId = engAttr.Id,
-                        AttributeDefinition = null!,
-                        Operator = "CONTAINS",
-                        TargetValue = "B2"
-                    });
-                }
-
-                context.Positions.AddRange(pos1, pos2);
-                await context.SaveChangesAsync();
-            }
-
-            var candUser = await userManager.FindByEmailAsync("candidate@test.com");
-            if (candUser != null && !context.CandidateProfiles.Any(c => c.UserId == candUser.Id))
-            {
-                var profile = new Itransition.Models.Profiles.CandidateProfile
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = candUser.Id,
-                    FirstName = "Alice",
-                    LastName = "Candidate",
-                    Location = "London, UK",
-                    User = null!
-                };
-
-                context.CandidateProfiles.Add(profile);
-                await context.SaveChangesAsync();
-
-                var proj1 = new Itransition.Models.Profiles.ProjectProfile
-                {
-                    Id = Guid.NewGuid(),
-                    CandidateProfileId = profile.Id,
-                    Name = "Enterprise ERP System",
-                    Description = "Built a scalable ERP using C# and .NET 8.",
-                    StartDate = new DateTime(2022, 1, 1),
-                    EndDate = new DateTime(2023, 12, 31),
-                    CandidateProfile = null!,
-                    TechnologyTags = new List<Itransition.Models.Profiles.ProjectTechnologyTag>
-                    {
-                        new Itransition.Models.Profiles.ProjectTechnologyTag { Id = Guid.NewGuid(), TagName = "C#", ProjectProfile = null! },
-                        new Itransition.Models.Profiles.ProjectTechnologyTag { Id = Guid.NewGuid(), TagName = ".NET", ProjectProfile = null! },
-                        new Itransition.Models.Profiles.ProjectTechnologyTag { Id = Guid.NewGuid(), TagName = "SQL", ProjectProfile = null! }
-                    }
-                };
-
-                var proj2 = new Itransition.Models.Profiles.ProjectProfile
-                {
-                    Id = Guid.NewGuid(),
-                    CandidateProfileId = profile.Id,
-                    Name = "E-Commerce Dashboard",
-                    Description = "Frontend dashboard for merchants.",
-                    StartDate = new DateTime(2024, 1, 1),
-                    CandidateProfile = null!,
-                    TechnologyTags = new List<Itransition.Models.Profiles.ProjectTechnologyTag>
-                    {
-                        new Itransition.Models.Profiles.ProjectTechnologyTag { Id = Guid.NewGuid(), TagName = "React", ProjectProfile = null! },
-                        new Itransition.Models.Profiles.ProjectTechnologyTag { Id = Guid.NewGuid(), TagName = "TypeScript", ProjectProfile = null! }
-                    }
-                };
-
-                context.ProjectProfiles.AddRange(proj1, proj2);
-                await context.SaveChangesAsync();
-            }
-
+            logger.LogInformation("Seeding explicitly enabled development data.");
+            await SeedDemoDomainDataAsync(context);
+            await SeedDemoUsersAsync(context, userManager, configuration, logger);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            logger.LogError(ex, "An error occurred seeding the database.");
+            logger.LogCritical(exception, "Database migration or required seed failed. Application startup is stopping.");
+            throw;
         }
     }
 
-    private static async Task AddRoleAsync(RoleManager<IdentityRole> roleManager, string roleName)
+    private static async Task EnsureConfiguredUserAsync(
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration,
+        IHostEnvironment environment,
+        ILogger logger,
+        string configurationSection,
+        string roleName,
+        string defaultFullName)
     {
-        if (!await roleManager.RoleExistsAsync(roleName))
+        var email = configuration[$"{configurationSection}:Email"]?.Trim();
+        var password = configuration[$"{configurationSection}:Password"];
+
+        if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(password))
         {
-            var result = await roleManager.CreateAsync(new IdentityRole(roleName));
-            if (!result.Succeeded)
-            {
-                throw new Exception(string.Join(",", result.Errors.Select(x => x.Description)));
-            }
+            logger.LogInformation("{RoleName} bootstrap seed is not configured.", roleName);
+            return;
         }
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            logger.LogWarning(
+                "{RoleName} bootstrap seed was skipped because both Email and Password must be configured.",
+                roleName);
+            return;
+        }
+
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                FullName = configuration[$"{configurationSection}:FullName"]?.Trim() ?? defaultFullName,
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true
+            };
+
+            var createResult = await userManager.CreateAsync(user, password);
+            if (!createResult.Succeeded && environment.IsDevelopment())
+            {
+                logger.LogError(
+                    "Configured {RoleName} was not created because its configuration is invalid: {Errors}",
+                    roleName,
+                    string.Join("; ", createResult.Errors.Select(error => error.Description)));
+                return;
+            }
+
+            EnsureIdentitySucceeded(createResult, $"create the configured {roleName}");
+            logger.LogInformation("Configured {RoleName} account was created.", roleName);
+        }
+        else if (configuration.GetValue<bool>($"{configurationSection}:ResetPassword"))
+        {
+            var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+            var resetResult = await userManager.ResetPasswordAsync(user, resetToken, password);
+            EnsureIdentitySucceeded(resetResult, $"reset the configured {roleName} password");
+            logger.LogWarning(
+                "Configured {RoleName} bootstrap password was reset. Disable ResetPassword immediately.",
+                roleName);
+        }
+
+        await EnsureUserRoleAsync(userManager, user, roleName);
     }
+
+    private static async Task SeedDemoDomainDataAsync(ApplicationDbContext context)
+    {
+        var definitionsByName = await context.AttributeDefinitions
+            .Include(attribute => attribute.Options)
+            .ToDictionaryAsync(attribute => attribute.Name, StringComparer.OrdinalIgnoreCase);
+
+        if (!definitionsByName.ContainsKey("English Level"))
+        {
+            var englishAttribute = new AttributeDefinition
+            {
+                Id = Guid.NewGuid(),
+                Name = "English Level",
+                CategoryId = AttributeCategoryIds.Language,
+                Category = null!,
+                DataType = AttributeDataType.Dropdown,
+                Options =
+                [
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "A1" },
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "A2" },
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "B1" },
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "B2" },
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "C1" },
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "C2" }
+                ]
+            };
+            context.AttributeDefinitions.Add(englishAttribute);
+            definitionsByName.Add(englishAttribute.Name, englishAttribute);
+        }
+
+        if (!definitionsByName.ContainsKey("Years of Experience"))
+        {
+            var experienceAttribute = new AttributeDefinition
+            {
+                Id = Guid.NewGuid(),
+                Name = "Years of Experience",
+                CategoryId = AttributeCategoryIds.Professional,
+                Category = null!,
+                DataType = AttributeDataType.Numeric
+            };
+            context.AttributeDefinitions.Add(experienceAttribute);
+            definitionsByName.Add(experienceAttribute.Name, experienceAttribute);
+        }
+
+        if (!definitionsByName.ContainsKey("Primary Language"))
+        {
+            var skillAttribute = new AttributeDefinition
+            {
+                Id = Guid.NewGuid(),
+                Name = "Primary Language",
+                CategoryId = AttributeCategoryIds.Technical,
+                Category = null!,
+                DataType = AttributeDataType.Dropdown,
+                Options =
+                [
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "C#" },
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "Java" },
+                    new AttributeOption { Id = Guid.NewGuid(), Value = "JavaScript" }
+                ]
+            };
+            context.AttributeDefinitions.Add(skillAttribute);
+            definitionsByName.Add(skillAttribute.Name, skillAttribute);
+        }
+
+        await context.SaveChangesAsync();
+
+        var english = definitionsByName["English Level"];
+        var primaryLanguage = definitionsByName["Primary Language"];
+        var existingPositionKeys = await context.Positions
+            .AsNoTracking()
+            .Select(position => position.Company + "\n" + position.Title)
+            .ToListAsync();
+        var positionKeys = existingPositionKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!positionKeys.Contains("Tech Corp\nSenior C# Developer"))
+        {
+            var publicPosition = new Position
+            {
+                Id = Guid.NewGuid(),
+                Title = "Senior C# Developer",
+                Company = "Tech Corp",
+                Level = "Senior",
+                IsPublic = true,
+                MaxProjectInCv = 5,
+                Tags = "C#, .NET, Azure, SQL",
+                Description = "Looking for an experienced C# developer to lead our backend team."
+            };
+            publicPosition.PositionRequiredAttributes.Add(new PositionAttribute
+            {
+                Id = Guid.NewGuid(),
+                PositionId = publicPosition.Id,
+                Position = publicPosition,
+                AttributeDefinitionId = english.Id,
+                AttributeDefinition = null!
+            });
+            publicPosition.PositionRequiredAttributes.Add(new PositionAttribute
+            {
+                Id = Guid.NewGuid(),
+                PositionId = publicPosition.Id,
+                Position = publicPosition,
+                AttributeDefinitionId = primaryLanguage.Id,
+                AttributeDefinition = null!
+            });
+            context.Positions.Add(publicPosition);
+        }
+
+        if (!positionKeys.Contains("WebStudio\nReact Frontend Engineer"))
+        {
+            var restrictedPosition = new Position
+            {
+                Id = Guid.NewGuid(),
+                Title = "React Frontend Engineer",
+                Company = "WebStudio",
+                Level = "Middle",
+                IsPublic = false,
+                MaxProjectInCv = 3,
+                Tags = "React, TypeScript, Redux, CSS",
+                Description = "Join us to build accessible interfaces using React."
+            };
+            restrictedPosition.PositionAccessRules.Add(new PositionAccessRule
+            {
+                Id = Guid.NewGuid(),
+                PositionId = restrictedPosition.Id,
+                Position = restrictedPosition,
+                AttributeDefinitionId = english.Id,
+                AttributeDefinition = null!,
+                Operator = "==",
+                TargetValue = "B2"
+            });
+            context.Positions.Add(restrictedPosition);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedDemoUsersAsync(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration,
+        ILogger logger)
+    {
+        var demoPassword = configuration["SeedData:DemoPassword"];
+        if (string.IsNullOrWhiteSpace(demoPassword)
+            || string.Equals(demoPassword, "CHANGE_ME", StringComparison.Ordinal))
+        {
+            logger.LogWarning("Demo users were skipped because SeedData:DemoPassword is not configured securely.");
+            return;
+        }
+
+        await EnsureDemoUserAsync(
+            userManager,
+            "recruiter@test.local",
+            "Test Recruiter",
+            demoPassword,
+            "Recruiter");
+
+        var candidate = await EnsureDemoUserAsync(
+            userManager,
+            "candidate@test.local",
+            "Test Candidate",
+            demoPassword,
+            "Candidate");
+
+        if (await context.CandidateProfiles.AnyAsync(profile => profile.UserId == candidate.Id))
+        {
+            return;
+        }
+
+        var profile = new CandidateProfile
+        {
+            Id = Guid.NewGuid(),
+            UserId = candidate.Id,
+            User = candidate
+        };
+
+        profile.AttributeValues.AddRange(
+        [
+            NewBuiltInValue(profile, BuiltInAttributeKeys.FirstNameId, "Alice"),
+            NewBuiltInValue(profile, BuiltInAttributeKeys.LastNameId, "Candidate"),
+            NewBuiltInValue(profile, BuiltInAttributeKeys.LocationId, "London, UK"),
+            NewBuiltInValue(profile, BuiltInAttributeKeys.PersonalPhotoId, null)
+        ]);
+
+        profile.Projects.Add(new ProjectProfile
+        {
+            Id = Guid.NewGuid(),
+            CandidateProfileId = profile.Id,
+            Name = "Enterprise ERP System",
+            Description = "Built a scalable ERP using C# and .NET.",
+            StartDate = new DateTime(2022, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2023, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+            CandidateProfile = profile,
+            TechnologyTags =
+            [
+                NewProjectTag("C#"),
+                NewProjectTag(".NET"),
+                NewProjectTag("SQL")
+            ]
+        });
+
+        profile.Projects.Add(new ProjectProfile
+        {
+            Id = Guid.NewGuid(),
+            CandidateProfileId = profile.Id,
+            Name = "E-Commerce Dashboard",
+            Description = "Frontend dashboard for merchants.",
+            StartDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            CandidateProfile = profile,
+            TechnologyTags =
+            [
+                NewProjectTag("React"),
+                NewProjectTag("TypeScript")
+            ]
+        });
+
+        context.CandidateProfiles.Add(profile);
+        await context.SaveChangesAsync();
+    }
+
+    private static ProjectTechnologyTag NewProjectTag(string name)
+    {
+        return new ProjectTechnologyTag
+        {
+            Id = Guid.NewGuid(),
+            TagName = name,
+            ProjectProfile = null!
+        };
+    }
+
+    private static UserAttributeValue NewBuiltInValue(
+        CandidateProfile profile,
+        Guid definitionId,
+        string? value)
+    {
+        return new UserAttributeValue
+        {
+            Id = Guid.NewGuid(),
+            CandidateProfileId = profile.Id,
+            CandidateProfile = profile,
+            AttributeDefinitionId = definitionId,
+            AttributeDefinition = null!,
+            Value = value
+        };
+    }
+
+    private static async Task<ApplicationUser> EnsureDemoUserAsync(
+        UserManager<ApplicationUser> userManager,
+        string email,
+        string fullName,
+        string password,
+        string role)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            user = new ApplicationUser
+            {
+                FullName = fullName,
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true
+            };
+
+            var createResult = await userManager.CreateAsync(user, password);
+            EnsureIdentitySucceeded(createResult, $"create demo user {email}");
+        }
+
+        await EnsureUserRoleAsync(userManager, user, role);
+        return user;
+    }
+
+    private static async Task EnsureRoleAsync(
+        RoleManager<IdentityRole> roleManager,
+        string roleName)
+    {
+        if (await roleManager.RoleExistsAsync(roleName))
+        {
+            return;
+        }
+
+        var result = await roleManager.CreateAsync(new IdentityRole(roleName));
+        EnsureIdentitySucceeded(result, $"create role {roleName}");
+    }
+
+    private static async Task EnsureUserRoleAsync(
+        UserManager<ApplicationUser> userManager,
+        ApplicationUser user,
+        string role)
+    {
+        if (await userManager.IsInRoleAsync(user, role))
+        {
+            return;
+        }
+
+        var result = await userManager.AddToRoleAsync(user, role);
+        EnsureIdentitySucceeded(result, $"assign role {role}");
+    }
+
+    private static void EnsureIdentitySucceeded(IdentityResult result, string operation)
+    {
+        if (result.Succeeded)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"Failed to {operation}: {string.Join(", ", result.Errors.Select(error => error.Description))}");
+    }
+
+    private sealed class SeedServiceMarker;
 }

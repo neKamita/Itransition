@@ -1,7 +1,53 @@
-﻿services:
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-itransition}
+      POSTGRES_USER: ${POSTGRES_USER:-itransition}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   itransition:
-    image: itransition
     build:
       context: .
       dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-itransition};Username=${POSTGRES_USER:-itransition};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      AdminConfiguration__Email: ${ADMIN_EMAIL:-}
+      AdminConfiguration__Password: ${ADMIN_PASSWORD:-}
+      AdminConfiguration__FullName: ${ADMIN_FULL_NAME:-Administrator}
+      AdminConfiguration__ResetPassword: ${ADMIN_RESET_PASSWORD:-false}
+      RecruiterConfiguration__Email: ${RECRUITER_EMAIL:-}
+      RecruiterConfiguration__Password: ${RECRUITER_PASSWORD:-}
+      RecruiterConfiguration__FullName: ${RECRUITER_FULL_NAME:-Recruiter}
+      RecruiterConfiguration__ResetPassword: ${RECRUITER_RESET_PASSWORD:-false}
+      SmtpSettings__Server: ${SMTP_SERVER:-}
+      SmtpSettings__Port: ${SMTP_PORT:-587}
+      SmtpSettings__Username: ${SMTP_USERNAME:-}
+      SmtpSettings__Password: ${SMTP_PASSWORD:-}
+      SmtpSettings__SenderEmail: ${SMTP_SENDER_EMAIL:-noreply@example.com}
+      CloudUpload__CloudName: ${CLOUDINARY_CLOUD_NAME:-}
+      CloudUpload__UploadPreset: ${CLOUDINARY_UPLOAD_PRESET:-}
+      DataProtection__KeysPath: /home/app/.aspnet/DataProtection-Keys
+    volumes:
+      - data-protection-keys:/home/app/.aspnet
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
 
+volumes:
+  postgres-data:
+  data-protection-keys:

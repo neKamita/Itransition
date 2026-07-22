@@ -1,0 +1,97 @@
+@model IReadOnlyList<Itransition.ViewModel.AdminUserListViewModel>
+
+@{
+    ViewData["Title"] = "User administration";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h1 class="h2 mb-1"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>User administration</h1>
+        <p class="text-muted mb-0">Manage access, account status and roles.</p>
+    </div>
+    <a asp-controller="CandidateProfiles" asp-action="Index" class="btn btn-outline-primary">
+        <i class="bi bi-people me-1" aria-hidden="true"></i>Candidate profiles
+    </a>
+</div>
+
+@if (TempData["AdminSuccess"] is string successMessage)
+{
+    <div class="alert alert-success" role="status" aria-live="polite">@successMessage</div>
+}
+@if (TempData["AdminNotice"] is string noticeMessage)
+{
+    <div class="alert alert-info" role="status" aria-live="polite">@noticeMessage</div>
+}
+@if (TempData["AdminError"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert" aria-live="assertive">@errorMessage</div>
+}
+
+<form asp-action="BulkAction" method="post">
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body d-flex flex-wrap gap-2 align-items-end action-bar">
+            <div>
+                <label for="roleName" class="form-label fw-semibold">Role</label>
+                <select id="roleName" name="roleName" class="form-select">
+                    <option value="Candidate">Candidate</option>
+                    <option value="Recruiter">Recruiter</option>
+                    <option value="Administrator">Administrator</option>
+                </select>
+            </div>
+            <button type="submit" name="action" value="AssignRole" class="btn btn-outline-primary">Assign role</button>
+            <button type="submit" name="action" value="RemoveRole" class="btn btn-outline-secondary">Remove role</button>
+            <button type="submit" name="action" value="Block" class="btn btn-outline-warning">Block</button>
+            <button type="submit" name="action" value="Unblock" class="btn btn-outline-success">Unblock</button>
+            <button type="submit" name="action" value="Delete" class="btn btn-danger" onclick="return confirm('Permanently delete the selected users?');">Delete</button>
+        </div>
+    </div>
+
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col" style="width: 44px;"><input type="checkbox" id="selectAll" class="form-check-input" aria-label="Select all users" /></th>
+                    <th scope="col">User</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Roles</th>
+                    <th scope="col">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td><input type="checkbox" name="userIds" value="@user.Id" class="form-check-input select-item" aria-label="Select @user.FullName" /></td>
+                        <td class="fw-semibold">@user.FullName</td>
+                        <td>@user.Email</td>
+                        <td>
+                            @if (user.RoleNames.Count == 0)
+                            {
+                                <span class="text-muted">No roles</span>
+                            }
+                            @foreach (var role in user.RoleNames)
+                            {
+                                <span class="badge bg-secondary me-1">@role</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge @(user.IsBlocked ? "bg-danger" : "bg-success")">
+                                @(user.IsBlocked ? "Blocked" : "Active")
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        document.getElementById('selectAll')?.addEventListener('change', function () {
+            for (const checkbox of document.querySelectorAll('.select-item')) {
+                checkbox.checked = this.checked;
+            }
+        });
+    </script>
+}

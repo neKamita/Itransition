@@ -18,7 +18,7 @@
                 </tr>
                 <tr>
                     <th class="text-muted"><i class="bi bi-folder me-1"></i>Category</th>
-                    <td><span class="badge bg-secondary">@Html.DisplayFor(model => model.Category)</span></td>
+                    <td><span class="badge bg-secondary">@Model.Category.Name</span></td>
                 </tr>
                 <tr>
                     <th class="text-muted"><i class="bi bi-card-text me-1"></i>Description</th>
@@ -49,6 +49,7 @@
                                     <form asp-action="RemoveOption" method="post" class="d-inline">
                                         <input type="hidden" name="optionId" value="@opt.Id" />
                                         <input type="hidden" name="attributeId" value="@Model.Id" />
+                                        <input type="hidden" name="version" value="@opt.Version" />
                                         <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this option?');">
                                             <i class="bi bi-trash"></i>
                                         </button>

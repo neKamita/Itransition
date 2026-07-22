@@ -1,53 +1,135 @@
-@model IEnumerable<Itransition.Models.Positions.Position>
+@model Itransition.ViewModel.SearchResultsViewModel
 
 @{
     ViewData["Title"] = "Search Results";
+    var totalResults = Model.Positions.Count + Model.Cvs.Count;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2><i class="bi bi-search me-2"></i>Search Results</h2>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+        <h1 class="h2 mb-1"><i class="bi bi-search me-2" aria-hidden="true"></i>Search results</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Query))
+        {
+            <p class="text-muted mb-0">
+                @totalResults result@(totalResults == 1 ? string.Empty : "s") for <strong>“@Model.Query”</strong>
+            </p>
+        }
+    </div>
 </div>
 
-@if (!Model.Any())
+<div asp-validation-summary="All" class="alert alert-danger" role="alert" aria-live="assertive"></div>
+
+@if (string.IsNullOrWhiteSpace(Model.Query))
 {
-    <div class="alert alert-secondary d-flex align-items-center">
-        <i class="bi bi-info-circle me-2 fs-5"></i>
-        <span>No positions or records found matching your search query.</span>
+    <div class="alert alert-info d-flex gap-2 align-items-start" role="status">
+        <i class="bi bi-info-circle flex-shrink-0" aria-hidden="true"></i>
+        <div>
+            <strong>Enter a search phrase.</strong>
+            <div>Search finds positions and, when your role permits it, candidate CVs.</div>
+        </div>
+    </div>
+}
+else if (totalResults == 0)
+{
+    <div class="alert alert-secondary d-flex gap-2 align-items-start" role="status">
+        <i class="bi bi-search flex-shrink-0" aria-hidden="true"></i>
+        <div>
+            <strong>No accessible results found.</strong>
+            <div>Try fewer words or a different job title, company, technology, or candidate name.</div>
+        </div>
     </div>
 }
 else
 {
-    <div class="table-responsive shadow-sm rounded">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-dark">
-                <tr>
-                    <th>Title</th>
-                    <th>Company</th>
-                    <th>Level</th>
-                    <th>Updated</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
+    <section class="mb-5" aria-labelledby="positionResultsHeading">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 id="positionResultsHeading" class="h4 mb-0">Positions</h2>
+            <span class="badge bg-secondary">@Model.Positions.Count</span>
+        </div>
+
+        @if (Model.Positions.Count == 0)
+        {
+            <p class="text-muted">No positions match this search.</p>
+        }
+        else
+        {
+            <div class="table-responsive border rounded shadow-sm">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                     <tr>
-                        <td>
-                            <a asp-controller="Positions" asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-primary text-decoration-none">
-                                <i class="bi bi-file-text me-1"></i>@item.Title
-                            </a>
-                        </td>
-                        <td>
-                            <span class="badge bg-secondary">@item.Company</span>
-                        </td>
-                        <td>
-                            <span class="badge bg-info text-dark">@item.Level</span>
-                        </td>
-                        <td class="text-muted small">
-                            @item.UpdatedDate.ToString("g")
-                        </td>
+                        <th scope="col">Title</th>
+                        <th scope="col">Company</th>
+                        <th scope="col">Level</th>
+                        <th scope="col">Updated</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                    </thead>
+                    <tbody>
+                    @foreach (var position in Model.Positions)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-controller="Positions" asp-action="Details" asp-route-id="@position.Id" class="fw-semibold text-decoration-none">
+                                    @position.Title
+                                </a>
+                            </td>
+                            <td>@position.Company</td>
+                            <td><span class="badge bg-info text-dark">@position.Level</span></td>
+                            <td class="text-muted"><time datetime="@position.UpdatedDate.ToString("O")">@position.UpdatedDate.ToString("g")</time></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <section aria-labelledby="cvResultsHeading">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 id="cvResultsHeading" class="h4 mb-0">CVs</h2>
+                <span class="badge bg-secondary">@Model.Cvs.Count</span>
+            </div>
+
+            @if (Model.Cvs.Count == 0)
+            {
+                <p class="text-muted">No CVs available to your role match this search.</p>
+            }
+            else
+            {
+                <div class="table-responsive border rounded shadow-sm">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th scope="col">Candidate</th>
+                            <th scope="col">Position</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Likes</th>
+                            <th scope="col">Updated</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var cv in Model.Cvs)
+                        {
+                            <tr>
+                                <td>
+                                    <a asp-controller="@(User.IsInRole("Recruiter") || User.IsInRole("Administrator") ? "CandidateDirectory" : "Cvs")"
+                                       asp-action="Details"
+                                       asp-route-id="@(User.IsInRole("Recruiter") || User.IsInRole("Administrator") ? cv.CandidateProfileId : cv.Id)"
+                                       class="fw-semibold text-decoration-none py-2 d-inline-block">
+                                        @cv.CandidateProfile.FirstName @cv.CandidateProfile.LastName
+                                    </a>
+                                </td>
+                                <td>@cv.Position.Title</td>
+                                <td><span class="badge @(cv.Status == Itransition.Models.Cvs.CvStatuses.Published ? "bg-success" : "bg-secondary")">@cv.Status</span></td>
+                                <td><i class="bi bi-heart-fill text-danger me-1" aria-hidden="true"></i>@cv.LikesCount</td>
+                                <td class="text-muted"><time datetime="@cv.UpdatedDate.ToString("O")">@cv.UpdatedDate.ToString("g")</time></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
 }

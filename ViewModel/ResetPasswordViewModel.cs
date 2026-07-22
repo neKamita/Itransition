@@ -6,11 +6,11 @@ public class ResetPasswordViewModel
 {
     [Required]
     [EmailAddress]
+    [StringLength(256)]
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{6,}$", 
-        ErrorMessage = "Password must be at least 6 characters and contain uppercase, lowercase, digit, and special character (e.g. Password123!).")]
+    [StringLength(40, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 40 characters.")]
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 

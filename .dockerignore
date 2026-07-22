@@ -1,5 +1,5 @@
-﻿**/.dockerignore
-**/.env
+**/.dockerignore
+**/.env*
 **/.git
 **/.gitignore
 **/.project
@@ -11,6 +11,7 @@
 **/*.*proj.user
 **/*.dbmdl
 **/*.jfm
+**/appsettings*.json
 **/azds.yaml
 **/bin
 **/charts
@@ -21,5 +22,7 @@
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
+**/.secrets
+**/ionos.md
 LICENSE
 README.md

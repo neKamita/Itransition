@@ -1,6 +1,6 @@
 namespace Itransition.Models.Cvs;
 using System.ComponentModel.DataAnnotations;
-using Itransition.Models.Attributes;
+using System.ComponentModel.DataAnnotations.Schema;
 using Itransition.Models.Profiles;
 using Itransition.Models.Positions;
 
@@ -15,16 +15,16 @@ public class Cv
 
     public required string Status { get; set; }
 
-    public int LikesCount { get; set; } = 0;
-    public int DislikesCount { get; set; } = 0;
+    public List<CvLike> Likes { get; set; } = new();
+
+    [NotMapped]
+    public int LikesCount => Likes.Count;
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
 
-    public List<UserAttributeValue> UserAttributeValues { get; set; } = new();
-
     [Timestamp]
-    public byte[]? RowVersion { get; set; }
+    public uint Version { get; set; }
 
 
 }

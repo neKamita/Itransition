@@ -2,6 +2,7 @@ namespace Itransition.Models.Cvs;
 using System.ComponentModel.DataAnnotations;
 using Itransition.Models.Attributes;
 using Itransition.Models.Profiles;
+using NpgsqlTypes;
 
 public class UserAttributeValue
 {
@@ -12,6 +13,8 @@ public class UserAttributeValue
     public required AttributeDefinition AttributeDefinition { get; set; }
     public string? Value { get; set; }
 
+    public NpgsqlTsVector SearchVector { get; set; } = null!;
+
     [Timestamp]
-    public byte[]? RowVersion { get; set; }
+    public uint Version { get; set; }
 }

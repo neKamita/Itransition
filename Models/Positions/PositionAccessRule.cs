@@ -1,5 +1,6 @@
 namespace Itransition.Models.Positions;
 
+using System.ComponentModel.DataAnnotations;
 using Itransition.Models.Attributes;
 
 public class PositionAccessRule
@@ -11,4 +12,7 @@ public class PositionAccessRule
     public required AttributeDefinition AttributeDefinition { get; set; }
     public required string Operator { get; set; }
     public required string TargetValue { get; set; }
+
+    [Timestamp]
+    public uint Version { get; set; }
 }

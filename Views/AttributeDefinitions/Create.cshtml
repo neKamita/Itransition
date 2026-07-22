@@ -24,12 +24,12 @@
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Category" class="form-label fw-semibold">Category</label>
+                        <label asp-for="CategoryId" class="form-label fw-semibold">Category</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-folder"></i></span>
-                            <input asp-for="Category" class="form-control" />
+                            <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.CategoryId"></select>
                         </div>
-                        <span asp-validation-for="Category" class="text-danger small"></span>
+                        <span asp-validation-for="CategoryId" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">

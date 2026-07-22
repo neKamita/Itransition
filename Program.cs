@@ -5,12 +5,29 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
 builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddScoped<PositionAccessService>();
+builder.Services.AddScoped<AdministratorBulkActionService>();
+builder.Services.AddSingleton<IMarkdownRenderer, MarkdownRenderer>();
+builder.Services.Configure<CloudUploadOptions>(
+    builder.Configuration.GetSection(CloudUploadOptions.SectionName));
+
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+        .SetApplicationName("Itransition.CvManagement");
+}
 
 var postgresConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
@@ -21,6 +38,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequiredUniqueChars = 1;
     options.User.RequireUniqueEmail = true;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(30);
     options.Lockout.MaxFailedAccessAttempts = 10;
@@ -31,6 +50,24 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    // Role changes and account blocking rotate the security stamp. Validating it
+    // on every request makes those administrative actions effective immediately.
+    options.ValidationInterval = TimeSpan.Zero;
+});
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.SlidingExpiration = true;
+});
 
 builder.Services.AddAuthorization(options =>
 {
@@ -57,7 +94,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 
-await SeedService.SeedDataBase(app.Services);
+await SeedService.SeedDatabaseAsync(app.Services, app.Environment);
 
 app.MapStaticAssets();
 

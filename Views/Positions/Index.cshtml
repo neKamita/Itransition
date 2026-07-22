@@ -8,6 +8,19 @@
     <h2><i class="bi bi-briefcase me-2"></i>Positions</h2>
 </div>
 
+@if (TempData["PositionSuccess"] is string successMessage)
+{
+    <div class="alert alert-success" role="status" aria-live="polite">@successMessage</div>
+}
+@if (TempData["PositionNotice"] is string noticeMessage)
+{
+    <div class="alert alert-info" role="status" aria-live="polite">@noticeMessage</div>
+}
+@if (TempData["PositionError"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert" aria-live="assertive">@errorMessage</div>
+}
+
 <form id="bulkForm" method="post">
     @if (User.IsInRole("Administrator") || User.IsInRole("Recruiter"))
     {
@@ -61,6 +74,7 @@
                     {
                         <td>
                             <input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input select-item" />
+                            <input type="hidden" name="selectedVersions[@item.Id]" value="@item.Version" />
                         </td>
                     }
                     <td>
@@ -102,7 +116,7 @@
 
 @section Scripts {
     <script>
-        document.getElementById('selectAll').addEventListener('change', function() {
+        document.getElementById('selectAll')?.addEventListener('change', function() {
             var checkboxes = document.querySelectorAll('.select-item');
             for (var checkbox of checkboxes) {
                 checkbox.checked = this.checked;

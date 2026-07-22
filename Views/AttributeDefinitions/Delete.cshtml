@@ -24,7 +24,7 @@
                         </tr>
                         <tr>
                             <th class="text-muted"><i class="bi bi-folder me-1"></i>Category</th>
-                            <td><span class="badge bg-secondary">@Html.DisplayFor(model => model.Category)</span></td>
+                            <td><span class="badge bg-secondary">@Model.Category.Name</span></td>
                         </tr>
                         <tr>
                             <th class="text-muted"><i class="bi bi-card-text me-1"></i>Description</th>
@@ -43,6 +43,7 @@
                 </a>
                 <form asp-action="Delete">
                     <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Version" />
                     <button type="submit" class="btn btn-danger">
                         <i class="bi bi-trash me-1"></i>Confirm Delete
                     </button>

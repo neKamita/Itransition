@@ -27,7 +27,7 @@
                         <label asp-for="Tags" class="form-label fw-semibold"></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-tags"></i></span>
-                            <input asp-for="Tags" class="form-control" placeholder="e.g. C#, .NET, React" />
+                            <input asp-for="Tags" class="form-control" data-tag-autocomplete placeholder="e.g. C#, .NET, React" />
                         </div>
                         <span asp-validation-for="Tags" class="text-danger small"></span>
                     </div>
@@ -66,14 +66,19 @@
                             <label asp-for="MaxProjectInCv" class="form-label fw-semibold">Max Projects in CV</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="bi bi-list-task"></i></span>
-                                <input asp-for="MaxProjectInCv" class="form-control" />
+                                <input asp-for="MaxProjectInCv" class="form-control" min="0" max="100" />
                             </div>
                             <span asp-validation-for="MaxProjectInCv" class="text-danger small"></span>
                         </div>
-                        <div class="col-md-6 mb-3 d-flex align-items-end">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" asp-for="IsPublic" />
-                                <label class="form-check-label fw-semibold" asp-for="IsPublic">Public</label>
+                        <div class="col-md-6 mb-3 d-flex align-items-center">
+                            <div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" asp-for="IsPublic" aria-describedby="visibilityHelp" />
+                                    <label class="form-check-label fw-semibold" asp-for="IsPublic">Public position</label>
+                                </div>
+                                <div id="visibilityHelp" class="form-text">
+                                    Enabled: available without filters. Disabled: access is controlled by rules.
+                                </div>
                             </div>
                         </div>
                     </div>

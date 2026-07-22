@@ -1,80 +1,130 @@
-using Itransition.Models;
 using Itransition.Data;
+using Itransition.Models;
+using Itransition.Services;
+using Itransition.ViewModel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Itransition.ViewModel;
+using Microsoft.EntityFrameworkCore;
 
 namespace Itransition.Controllers;
-
 
 [Authorize(Policy = "RequireAdministratorRole")]
 public class AdministratorController : Controller
 {
-    private readonly UserManager<ApplicationUser> userManager;
-    private readonly ApplicationDbContext dbContext;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly ApplicationDbContext _dbContext;
+    private readonly AdministratorBulkActionService _bulkActionService;
+    private readonly ILogger<AdministratorController> _logger;
 
-    public AdministratorController(UserManager<ApplicationUser> userManager, ApplicationDbContext dbContext)
+    public AdministratorController(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        ApplicationDbContext dbContext,
+        AdministratorBulkActionService bulkActionService,
+        ILogger<AdministratorController> logger)
     {
-        this.userManager = userManager;
-        this.dbContext = dbContext;
+        _userManager = userManager;
+        _signInManager = signInManager;
+        _dbContext = dbContext;
+        _bulkActionService = bulkActionService;
+        _logger = logger;
     }
 
     [HttpGet]
-    [Authorize(Policy = "RequireAdministratorRole")]
     public async Task<IActionResult> ListUsers()
     {
-        var result = new List<AdminUserListViewModel>();
+        var users = await _userManager.Users
+            .AsNoTracking()
+            .OrderBy(user => user.FullName)
+            .ThenBy(user => user.Email)
+            .ToListAsync();
 
-        foreach (var user in userManager.Users.ToList())
+        var roleAssignments = await (
+                from userRole in _dbContext.UserRoles
+                join role in _dbContext.Roles on userRole.RoleId equals role.Id
+                select new { userRole.UserId, RoleName = role.Name! })
+            .AsNoTracking()
+            .ToListAsync();
+
+        var rolesByUser = roleAssignments
+            .GroupBy(assignment => assignment.UserId)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<string>)group.Select(item => item.RoleName).Order().ToList());
+
+        var result = users.Select(user => new AdminUserListViewModel
         {
-            var roles = await userManager.GetRolesAsync(user);
-            var userRole = roles.FirstOrDefault() ?? "No Role";
-            result.Add(new AdminUserListViewModel
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                Email = user.Email,
-                RoleName = userRole,
-                IsBlocked = user.LockoutEnd > DateTimeOffset.UtcNow
-            });
-        }
+            Id = user.Id,
+            FullName = user.FullName,
+            Email = user.Email ?? string.Empty,
+            RoleNames = rolesByUser.GetValueOrDefault(user.Id, []),
+            IsBlocked = user.LockoutEnd > DateTimeOffset.UtcNow
+        }).ToList();
 
         return View(result);
     }
 
     [HttpPost]
-    [Authorize(Policy = "RequireAdministratorRole")]
-    public async Task<IActionResult> BulkAction(string action, List<string> userIds)
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BulkAction(
+        string action,
+        List<string>? userIds,
+        string? roleName)
     {
-        var selfId = userManager.GetUserId(User);
-        var users = userManager.Users.Where(x => userIds.Contains(x.Id) && x.Id != selfId).ToList();
-
-
-
-        if (action == "Block")
+        if (userIds is null || userIds.Count == 0)
         {
-            foreach (var user in users)
+            TempData["AdminNotice"] = "Select at least one user.";
+            return RedirectToAction(nameof(ListUsers));
+        }
+
+        var selfId = _userManager.GetUserId(User);
+        if (string.IsNullOrWhiteSpace(selfId))
+        {
+            return Challenge();
+        }
+
+        AdministratorBulkActionResult result;
+        try
+        {
+            result = await _bulkActionService.ExecuteAsync(
+                action,
+                userIds,
+                roleName,
+                selfId,
+                HttpContext.RequestAborted);
+        }
+        catch (AdministratorBulkActionException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "Administrator {AdministratorId} could not complete action {Action}",
+                selfId,
+                action);
+            TempData["AdminError"] = exception.Message;
+            return RedirectToAction(nameof(ListUsers));
+        }
+
+        if (result.CurrentUserChanged)
+        {
+            var currentUser = await _userManager.FindByIdAsync(selfId);
+            if (currentUser is not null)
             {
-                user.LockoutEnd = DateTimeOffset.MaxValue;
-                await userManager.UpdateAsync(user);
+                await _signInManager.RefreshSignInAsync(currentUser);
             }
         }
-        else if (action == "Unblock")
-        {
-            foreach (var user in users)
-            {
-                user.LockoutEnd = null;
-                await userManager.UpdateAsync(user);
-            }
-        }
-        else if (action == "Delete")
-        {
-            foreach (var user in users)
-            {
-                await userManager.DeleteAsync(user);
-            }
-        }
-        return RedirectToAction("ListUsers");
+
+        _logger.LogInformation(
+            "Administrator {AdministratorId} completed action {Action} for {ChangedUsers} user(s)",
+            selfId,
+            action,
+            result.ChangedUsers);
+
+        TempData["AdminSuccess"] = $"{action} completed for {result.ChangedUsers} user(s).";
+
+        return result.CurrentAdministratorRoleRemoved
+            ? RedirectToAction("Index", "Home")
+            : RedirectToAction(nameof(ListUsers));
     }
 }

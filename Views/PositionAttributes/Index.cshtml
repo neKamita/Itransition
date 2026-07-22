@@ -8,11 +8,7 @@
     <h2><i class="bi bi-sliders me-2"></i>Position Attributes</h2>
 </div>
 
-<div class="mb-3">
-    <a asp-action="Create" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>Link Attribute to Position
-    </a>
-</div>
+<p class="text-muted">Add or remove requirements from the position page. Use this table to inspect and reorder existing requirements.</p>
 
 <div class="table-responsive shadow-sm rounded">
     <table class="table table-hover align-middle mb-0">
@@ -21,31 +17,19 @@
                 <th>Position Title</th>
                 <th>Attribute Category</th>
                 <th>Order Index</th>
-                <th class="text-end">Actions</th>
             </tr>
         </thead>
         <tbody>
     @foreach (var item in Model) {
             <tr>
                 <td>
-                    <span class="fw-bold text-dark">@(item.Position?.Title ?? "N/A")</span>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">@(item.Position?.Title ?? "N/A")</a>
                 </td>
                 <td>
-                    <span class="badge bg-secondary">@(item.AttributeDefinition?.Category ?? "N/A")</span>
+                    <span class="badge bg-secondary">@(item.AttributeDefinition?.Category?.Name ?? "N/A")</span>
                 </td>
                 <td>
                     <span class="badge bg-info text-dark">#@item.OrderIndex</span>
-                </td>
-                <td class="text-end">
-                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm me-1">
-                        <i class="bi bi-eye"></i>
-                    </a>
-                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning btn-sm me-1">
-                        <i class="bi bi-pencil"></i>
-                    </a>
-                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger btn-sm">
-                        <i class="bi bi-trash"></i>
-                    </a>
                 </td>
             </tr>
     }

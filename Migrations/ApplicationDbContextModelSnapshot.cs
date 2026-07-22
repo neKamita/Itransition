@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -90,16 +91,90 @@ namespace Itransition.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Itransition.Models.Attributes.AttributeCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("AttributeCategories");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("c1000000-0000-0000-0000-000000000001"),
+                            Name = "Personal Information",
+                            SortOrder = 10
+                        },
+                        new
+                        {
+                            Id = new Guid("c1000000-0000-0000-0000-000000000002"),
+                            Name = "Certification",
+                            SortOrder = 20
+                        },
+                        new
+                        {
+                            Id = new Guid("c1000000-0000-0000-0000-000000000003"),
+                            Name = "Domain Knowledge",
+                            SortOrder = 30
+                        },
+                        new
+                        {
+                            Id = new Guid("c1000000-0000-0000-0000-000000000004"),
+                            Name = "Soft Skills",
+                            SortOrder = 40
+                        },
+                        new
+                        {
+                            Id = new Guid("c1000000-0000-0000-0000-000000000005"),
+                            Name = "Language",
+                            SortOrder = 50
+                        },
+                        new
+                        {
+                            Id = new Guid("c1000000-0000-0000-0000-000000000006"),
+                            Name = "Professional",
+                            SortOrder = 60
+                        },
+                        new
+                        {
+                            Id = new Guid("c1000000-0000-0000-0000-000000000007"),
+                            Name = "Technical",
+                            SortOrder = 70
+                        },
+                        new
+                        {
+                            Id = new Guid("c1000000-0000-0000-0000-000000000008"),
+                            Name = "Other",
+                            SortOrder = 999
+                        });
+                });
+
             modelBuilder.Entity("Itransition.Models.Attributes.AttributeDefinition", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Category")
-                        .IsRequired()
+                    b.Property<string>("BuiltInKey")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DataType")
                         .HasColumnType("integer");
@@ -108,19 +183,81 @@ namespace Itransition.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<bool>("IsBuiltIn")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BuiltInKey")
+                        .IsUnique()
+                        .HasFilter("\"BuiltInKey\" IS NOT NULL");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
                     b.ToTable("AttributeDefinitions");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("b1000000-0000-0000-0000-000000000001"),
+                            BuiltInKey = "first_name",
+                            CategoryId = new Guid("c1000000-0000-0000-0000-000000000001"),
+                            DataType = 0,
+                            Description = "Required profile field shared with position templates.",
+                            IsBuiltIn = true,
+                            Name = "First Name",
+                            Version = 0u
+                        },
+                        new
+                        {
+                            Id = new Guid("b1000000-0000-0000-0000-000000000002"),
+                            BuiltInKey = "last_name",
+                            CategoryId = new Guid("c1000000-0000-0000-0000-000000000001"),
+                            DataType = 0,
+                            Description = "Required profile field shared with position templates.",
+                            IsBuiltIn = true,
+                            Name = "Last Name",
+                            Version = 0u
+                        },
+                        new
+                        {
+                            Id = new Guid("b1000000-0000-0000-0000-000000000003"),
+                            BuiltInKey = "location",
+                            CategoryId = new Guid("c1000000-0000-0000-0000-000000000001"),
+                            DataType = 0,
+                            Description = "Required profile field shared with position templates.",
+                            IsBuiltIn = true,
+                            Name = "Location",
+                            Version = 0u
+                        },
+                        new
+                        {
+                            Id = new Guid("b1000000-0000-0000-0000-000000000004"),
+                            BuiltInKey = "personal_photo",
+                            CategoryId = new Guid("c1000000-0000-0000-0000-000000000001"),
+                            DataType = 2,
+                            Description = "Required profile field shared with position templates.",
+                            IsBuiltIn = true,
+                            Name = "Personal Photo",
+                            Version = 0u
+                        });
                 });
 
             modelBuilder.Entity("Itransition.Models.Attributes.AttributeOption", b =>
@@ -137,9 +274,16 @@ namespace Itransition.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("AttributeDefinitionId");
+                    b.HasIndex("AttributeDefinitionId", "Value")
+                        .IsUnique();
 
                     b.ToTable("AttributeOptions");
                 });
@@ -156,19 +300,8 @@ namespace Itransition.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("DislikesCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LikesCount")
-                        .HasColumnType("integer");
-
                     b.Property<Guid>("PositionId")
                         .HasColumnType("uuid");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -177,13 +310,38 @@ namespace Itransition.Migrations
                     b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("Id");
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
-                    b.HasIndex("CandidateProfileId");
+                    b.HasKey("Id");
 
                     b.HasIndex("PositionId");
 
+                    b.HasIndex("CandidateProfileId", "PositionId")
+                        .IsUnique();
+
                     b.ToTable("Cvs");
+                });
+
+            modelBuilder.Entity("Itransition.Models.Cvs.CvLike", b =>
+                {
+                    b.Property<Guid>("CvId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecruiterId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CvId", "RecruiterId");
+
+                    b.HasIndex("RecruiterId");
+
+                    b.ToTable("CvLikes");
                 });
 
             modelBuilder.Entity("Itransition.Models.Cvs.UserAttributeValue", b =>
@@ -198,24 +356,32 @@ namespace Itransition.Migrations
                     b.Property<Guid>("CandidateProfileId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("CvId")
-                        .HasColumnType("uuid");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
+                        .HasColumnType("tsvector")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "english")
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Value" });
 
                     b.Property<string>("Value")
                         .HasColumnType("text");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeDefinitionId");
 
-                    b.HasIndex("CandidateProfileId");
+                    b.HasIndex("SearchVector");
 
-                    b.HasIndex("CvId");
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
+                    b.HasIndex("CandidateProfileId", "AttributeDefinitionId")
+                        .IsUnique();
 
                     b.ToTable("UserAttributeValues");
                 });
@@ -246,10 +412,12 @@ namespace Itransition.Migrations
                     b.Property<int>("MaxProjectInCv")
                         .HasColumnType("integer");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
+                        .HasColumnType("tsvector")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "english")
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "Description", "Company", "Level", "Tags" });
 
                     b.Property<string>("Tags")
                         .HasColumnType("text");
@@ -261,7 +429,17 @@ namespace Itransition.Migrations
                     b.Property<DateTime>("UpdatedDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.ToTable("Positions");
                 });
@@ -286,11 +464,18 @@ namespace Itransition.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeDefinitionId");
 
-                    b.HasIndex("PositionId");
+                    b.HasIndex("PositionId", "AttributeDefinitionId", "Operator", "TargetValue")
+                        .IsUnique();
 
                     b.ToTable("PositionAccessRules");
                 });
@@ -310,11 +495,18 @@ namespace Itransition.Migrations
                     b.Property<Guid>("PositionId")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AttributeDefinitionId");
 
-                    b.HasIndex("PositionId");
+                    b.HasIndex("PositionId", "AttributeDefinitionId")
+                        .IsUnique();
 
                     b.ToTable("PositionAttributes");
                 });
@@ -325,32 +517,20 @@ namespace Itransition.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Location")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PersonalPhotoUrl")
-                        .HasColumnType("text");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
-
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("CandidateProfiles");
                 });
@@ -374,13 +554,14 @@ namespace Itransition.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("bytea");
-
                     b.Property<DateTime?>("StartDate")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -541,6 +722,17 @@ namespace Itransition.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Itransition.Models.Attributes.AttributeDefinition", b =>
+                {
+                    b.HasOne("Itransition.Models.Attributes.AttributeCategory", "Category")
+                        .WithMany("Attributes")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("Itransition.Models.Attributes.AttributeOption", b =>
                 {
                     b.HasOne("Itransition.Models.Attributes.AttributeDefinition", "AttributeDefinition")
@@ -571,6 +763,25 @@ namespace Itransition.Migrations
                     b.Navigation("Position");
                 });
 
+            modelBuilder.Entity("Itransition.Models.Cvs.CvLike", b =>
+                {
+                    b.HasOne("Itransition.Models.Cvs.Cv", "Cv")
+                        .WithMany("Likes")
+                        .HasForeignKey("CvId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Itransition.Models.ApplicationUser", "Recruiter")
+                        .WithMany()
+                        .HasForeignKey("RecruiterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cv");
+
+                    b.Navigation("Recruiter");
+                });
+
             modelBuilder.Entity("Itransition.Models.Cvs.UserAttributeValue", b =>
                 {
                     b.HasOne("Itransition.Models.Attributes.AttributeDefinition", "AttributeDefinition")
@@ -584,10 +795,6 @@ namespace Itransition.Migrations
                         .HasForeignKey("CandidateProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Itransition.Models.Cvs.Cv", null)
-                        .WithMany("UserAttributeValues")
-                        .HasForeignKey("CvId");
 
                     b.Navigation("AttributeDefinition");
 
@@ -716,6 +923,11 @@ namespace Itransition.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Itransition.Models.Attributes.AttributeCategory", b =>
+                {
+                    b.Navigation("Attributes");
+                });
+
             modelBuilder.Entity("Itransition.Models.Attributes.AttributeDefinition", b =>
                 {
                     b.Navigation("Options");
@@ -723,7 +935,7 @@ namespace Itransition.Migrations
 
             modelBuilder.Entity("Itransition.Models.Cvs.Cv", b =>
                 {
-                    b.Navigation("UserAttributeValues");
+                    b.Navigation("Likes");
                 });
 
             modelBuilder.Entity("Itransition.Models.Positions.Position", b =>

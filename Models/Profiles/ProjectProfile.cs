@@ -15,7 +15,7 @@ public class ProjectProfile
     public List<ProjectTechnologyTag> TechnologyTags { get; set; } = new();
 
     [Timestamp]
-    public byte[]? RowVersion { get; set; }
+    public uint Version { get; set; }
 
 
 

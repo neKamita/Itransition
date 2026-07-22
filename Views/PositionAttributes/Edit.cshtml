@@ -14,30 +14,24 @@
                 <form asp-action="Edit">
                     <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
                     <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Version" />
+                    <input type="hidden" name="positionVersion" value="@ViewData["PositionVersion"]" />
 
                     <div class="mb-3">
-                        <label asp-for="PositionId" class="form-label fw-semibold">Position</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-briefcase"></i></span>
-                            <select asp-for="PositionId" class="form-select" asp-items="ViewBag.PositionId"></select>
-                        </div>
-                        <span asp-validation-for="PositionId" class="text-danger small"></span>
+                        <span class="form-label fw-semibold d-block">Position</span>
+                        <div class="form-control bg-light">@Model.Position.Title</div>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="AttributeDefinitionId" class="form-label fw-semibold">Attribute Definition</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-tag"></i></span>
-                            <select asp-for="AttributeDefinitionId" class="form-select" asp-items="ViewBag.AttributeDefinitionId"></select>
-                        </div>
-                        <span asp-validation-for="AttributeDefinitionId" class="text-danger small"></span>
+                        <span class="form-label fw-semibold d-block">Attribute Definition</span>
+                        <div class="form-control bg-light">@Model.AttributeDefinition.Name</div>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="OrderIndex" class="form-label fw-semibold">Order Index</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-sort-numeric-down"></i></span>
-                            <input asp-for="OrderIndex" class="form-control" />
+                            <input asp-for="OrderIndex" name="orderIndex" class="form-control" min="0" max="1000" />
                         </div>
                         <span asp-validation-for="OrderIndex" class="text-danger small"></span>
                     </div>

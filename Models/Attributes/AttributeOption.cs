@@ -15,4 +15,7 @@ public class AttributeOption
 
     [JsonIgnore]
     public AttributeDefinition? AttributeDefinition { get; set; }
+
+    [Timestamp]
+    public uint Version { get; set; }
 }

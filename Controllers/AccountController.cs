@@ -4,9 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 using Itransition.ViewModel;
 using Itransition.Models.Profiles;
 using Itransition.Models.Cvs;
+using Itransition.Models.Attributes;
 using Itransition.Data;
 
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Itransition.Controllers;
 
@@ -17,31 +19,48 @@ public class AccountController : Controller
     private readonly RoleManager<IdentityRole> roleManager;
     private readonly IEmailSender emailSender;
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<AccountController> logger;
 
     public AccountController(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
         IEmailSender emailSender,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        ILogger<AccountController> logger)
     {
         this.signInManager = signInManager;
         this.userManager = userManager;
         this.roleManager = roleManager;
         this.emailSender = emailSender;
         this._context = context;
+        this.logger = logger;
     }
 
     [HttpGet]
-    public IActionResult Login() => View();
+    public IActionResult Login(string? returnUrl = null)
+    {
+        return View(new LoginViewModel
+        {
+            ReturnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null
+        });
+    }
+
+    [HttpGet]
+    public IActionResult AccessDenied() => View();
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel login)
     {
         if (!ModelState.IsValid) return View(login);
-        var res = await signInManager.PasswordSignInAsync(login.EmailAddress, login.Password, login.RememberMe, false);
-        if (res.Succeeded) return RedirectToAction("Index", "Home");
+        var res = await signInManager.PasswordSignInAsync(login.EmailAddress, login.Password, login.RememberMe, lockoutOnFailure: true);
+        if (res.Succeeded)
+        {
+            return Url.IsLocalUrl(login.ReturnUrl)
+                ? LocalRedirect(login.ReturnUrl)
+                : RedirectToAction("Index", "Home");
+        }
         ModelState.AddModelError(string.Empty, "Invalid email or password.");
         return View(login);
     }
@@ -54,45 +73,99 @@ public class AccountController : Controller
     public async Task<IActionResult> Register(RegisterViewModel register)
     {
         if (!ModelState.IsValid) return View(register);
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         var user = CreateUser(register);
         var result = await userManager.CreateAsync(user, register.Password);
 
-             var profile = new CandidateProfile {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            User = user,
-            FirstName = register.Name,
-            LastName = "",
-            Location = "",
-            PersonalPhotoUrl = "",
-            Projects = new List<ProjectProfile>(),
-            AttributeValues = new List<UserAttributeValue>()
-        };
+        if (!result.Succeeded)
+        {
+            await transaction.RollbackAsync();
+            return AddRegisterErrors(result, register);
+        }
 
-        _context.CandidateProfiles.Add(profile);
-        await _context.SaveChangesAsync();
+        try
+        {
+            var roleResult = await EnsureRoleExists("Candidate");
+            if (!roleResult.Succeeded)
+            {
+                await transaction.RollbackAsync();
+                return AddRegisterErrors(roleResult, register);
+            }
 
-        return await HandleRegisterResult(result, user, register);
+            var addToRoleResult = await userManager.AddToRoleAsync(user, "Candidate");
+            if (!addToRoleResult.Succeeded)
+            {
+                await transaction.RollbackAsync();
+                return AddRegisterErrors(addToRoleResult, register);
+            }
+
+            var profile = new CandidateProfile
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                User = user,
+                Projects = new List<ProjectProfile>(),
+                AttributeValues =
+                [
+                    NewBuiltInValue(BuiltInAttributeKeys.FirstNameId, register.Name),
+                    NewBuiltInValue(BuiltInAttributeKeys.LastNameId, null),
+                    NewBuiltInValue(BuiltInAttributeKeys.LocationId, null),
+                    NewBuiltInValue(BuiltInAttributeKeys.PersonalPhotoId, null)
+                ]
+            };
+
+            foreach (var attributeValue in profile.AttributeValues)
+            {
+                attributeValue.CandidateProfileId = profile.Id;
+                attributeValue.CandidateProfile = profile;
+            }
+
+            _context.CandidateProfiles.Add(profile);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            await signInManager.SignInAsync(user, false);
+            logger.LogInformation("User {UserId} registered with Candidate role", user.Id);
+            return RedirectToAction("Index", "Home");
+        }
+        catch (Exception exception)
+        {
+            await transaction.RollbackAsync();
+            logger.LogError(exception, "Registration failed after creating user {UserId}", user.Id);
+            ModelState.AddModelError(string.Empty, "Registration could not be completed. Please try again.");
+            return View(register);
+        }
     }
 
     private ApplicationUser CreateUser(RegisterViewModel r)
     {
-        return new ApplicationUser { FullName = r.Name, Email = r.Email, UserName = r.Email, NormalizedEmail = r.Email.ToUpper(), NormalizedUserName = r.Email.ToUpper() };
+        return new ApplicationUser
+        {
+            FullName = r.Name,
+            Email = r.Email,
+            UserName = r.Email
+        };
     }
 
-    private async Task<IActionResult> HandleRegisterResult(IdentityResult res, ApplicationUser u, RegisterViewModel vm)
+    private static UserAttributeValue NewBuiltInValue(Guid definitionId, string? value)
     {
-        if (!res.Succeeded) return AddRegisterErrors(res, vm);
-        await EnsureRoleExists("Candidate");
-        await userManager.AddToRoleAsync(u, "Candidate");
-        await signInManager.SignInAsync(u, false);
-        return RedirectToAction("Index", "Home");
+        return new UserAttributeValue
+        {
+            Id = Guid.NewGuid(),
+            CandidateProfileId = Guid.Empty,
+            CandidateProfile = null!,
+            AttributeDefinitionId = definitionId,
+            AttributeDefinition = null!,
+            Value = string.IsNullOrWhiteSpace(value) ? null : value.Trim()
+        };
     }
 
-    private async Task EnsureRoleExists(string roleName)
+    private async Task<IdentityResult> EnsureRoleExists(string roleName)
     {
-        if (!await roleManager.RoleExistsAsync(roleName))
-            await roleManager.CreateAsync(new IdentityRole(roleName));
+        return await roleManager.RoleExistsAsync(roleName)
+            ? IdentityResult.Success
+            : await roleManager.CreateAsync(new IdentityRole(roleName));
     }
 
     private IActionResult AddRegisterErrors(IdentityResult res, RegisterViewModel vm)
@@ -110,27 +183,28 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(model);
         var user = await userManager.FindByEmailAsync(model.Email);
-        if (user == null) return ShowError(model, "User with this email was not found.");
-        return await SendResetEmail(user, model);
+        if (user is not null)
+        {
+            await SendResetEmail(user);
+        }
+
+        ViewBag.Success = "If an account exists for this email, a password reset link has been sent.";
+        return View(model);
     }
 
-    private async Task<IActionResult> SendResetEmail(ApplicationUser user, VerifyViewModel model)
+    private async Task SendResetEmail(ApplicationUser user)
     {
-        try {
+        try
+        {
             var token = await userManager.GeneratePasswordResetTokenAsync(user);
             var link = Url.Action("ResetPassword", "Account", new { token, email = user.Email }, Request.Scheme);
             await emailSender.SendEmailAsync(user.Email!, "Reset Password", $"Reset password link: <a href='{link}'>Click Here</a>");
-            ViewBag.Success = "Password reset link has been sent to your email.";
-            return View(model);
-        } catch {
-            return ShowError(model, "Failed to send email. Please check SMTP settings.");
+            logger.LogInformation("Password reset email requested for user {UserId}", user.Id);
         }
-    }
-
-    private IActionResult ShowError(VerifyViewModel model, string error)
-    {
-        ModelState.AddModelError(string.Empty, error);
-        return View(model);
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Failed to send a password reset email for user {UserId}", user.Id);
+        }
     }
 
     [HttpGet]

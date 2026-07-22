@@ -1,5 +1,6 @@
 namespace Itransition.Models.Positions;
 using System.ComponentModel.DataAnnotations;
+using NpgsqlTypes;
 
 public class Position
 {
@@ -18,6 +19,7 @@ public class Position
     public required string Level { get; set; }
 
     [Display(Name = "Max Projects / CV")]
+    [Range(0, 100, ErrorMessage = "Max projects must be between 0 and 100.")]
     public required int MaxProjectInCv { get; set; }
 
     [Display(Name = "Visibility")]
@@ -31,6 +33,8 @@ public class Position
     public List<PositionAttribute> PositionRequiredAttributes { get; set; } = new();
     public List<PositionAccessRule> PositionAccessRules { get; set; } = new();
 
+    public NpgsqlTsVector SearchVector { get; set; } = null!;
+
     [Timestamp]
-    public byte[]? RowVersion { get; set; }
+    public uint Version { get; set; }
 }

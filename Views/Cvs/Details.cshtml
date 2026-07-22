@@ -1,13 +1,60 @@
 @model Itransition.Models.Cvs.Cv
+@inject Itransition.Services.IMarkdownRenderer MarkdownRenderer
+@using Itransition.Models.Attributes
+@using Microsoft.Extensions.Options
+@inject IOptions<Itransition.Services.CloudUploadOptions> CloudUpload
 
 @{
     ViewData["Title"] = "CV Details";
+    var canManageCv = ViewData["CanManageCv"] is true;
+    var currentUserLiked = ViewData["CurrentUserLiked"] is true;
+    var missingPublicationFields = ViewData["MissingPublicationFields"] as IReadOnlyList<string> ?? [];
+    var isPublished = string.Equals(Model.Status, Itransition.Models.Cvs.CvStatuses.Published, StringComparison.OrdinalIgnoreCase);
+    var statusClass = isPublished ? "bg-success" : Model.Status == Itransition.Models.Cvs.CvStatuses.Draft ? "bg-warning text-dark" : "bg-secondary";
+    var canEditAttributes = canManageCv && !isPublished;
+    var relevantProjects = ViewData["RelevantProjects"] as IReadOnlyList<Itransition.Models.Profiles.ProjectProfile> ?? [];
+    var position = Model!.Position;
+    var positionTags = (position.Tags ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
 }
+
+@if (TempData["CvSuccess"] is string successMessage)
+{
+    <div class="alert alert-success d-flex gap-2 align-items-center" role="status" aria-live="polite">
+        <i class="bi bi-check-circle" aria-hidden="true"></i>
+        <span>@successMessage</span>
+    </div>
+}
+@if (TempData["CvNotice"] is string noticeMessage)
+{
+    <div class="alert alert-info d-flex gap-2 align-items-center" role="status" aria-live="polite">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <span>@noticeMessage</span>
+    </div>
+}
+@if (TempData["CvPublishError"] is string publishError)
+{
+    <div class="alert alert-danger" role="alert" aria-live="assertive">
+        <div class="d-flex gap-2 align-items-start">
+            <i class="bi bi-exclamation-circle fs-5" aria-hidden="true"></i>
+            <div>
+                <h2 class="h6 alert-heading fw-bold">CV is not ready to publish</h2>
+                <p class="mb-2">@publishError</p>
+                <a asp-controller="CandidateProfiles" asp-action="Details" asp-route-id="@Model.CandidateProfileId" class="btn btn-sm btn-outline-danger">
+                    Complete profile
+                </a>
+            </div>
+        </div>
+    </div>
+}
+
+<div id="cvInlineNotice" class="alert d-none" role="status" aria-live="polite"></div>
 
 <div class="card shadow-sm border-0 rounded-3 my-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
         <h4 class="mb-0 fw-bold"><i class="bi bi-file-earmark-person me-2"></i>CV Details</h4>
-        <span class="badge bg-primary fs-6">@Model.Status</span>
+        <span class="badge @statusClass fs-6">@Model.Status</span>
     </div>
     <div class="card-body p-4">
         <div class="row align-items-center mb-4">
@@ -26,6 +73,12 @@
             <div class="col-md-9">
                 <h3 class="fw-bold mb-1">@Model.CandidateProfile?.FirstName @Model.CandidateProfile?.LastName</h3>
                 <p class="text-muted mb-2"><i class="bi bi-geo-alt me-1"></i>@(Model.CandidateProfile?.Location ?? "Not specified")</p>
+                @if (User.IsInRole("Recruiter") || User.IsInRole("Administrator"))
+                {
+                    <a asp-controller="CandidateDirectory" asp-action="Details" asp-route-id="@Model.CandidateProfileId" class="btn btn-sm btn-outline-primary py-2 px-3">
+                        <i class="bi bi-person-lines-fill me-1" aria-hidden="true"></i>Published CVs
+                    </a>
+                }
                 <div class="p-3 bg-light rounded-3 mb-3">
                     <h5 class="fw-bold text-dark mb-1"><i class="bi bi-briefcase me-2"></i>@Model.Position?.Title</h5>
                     <p class="mb-0 text-secondary">Company: <strong>@Model.Position?.Company</strong> | Level: <span class="badge bg-info text-dark">@Model.Position?.Level</span></p>
@@ -35,11 +88,12 @@
                         <i class="bi bi-heart-fill text-danger me-1"></i>
                         <span class="fw-bold">@Model.LikesCount</span> Likes
                     </div>
-                    @if (User.IsInRole("Recruiter") || User.IsInRole("Administrator"))
+                    @if ((User.IsInRole("Recruiter") || User.IsInRole("Administrator")) && isPublished)
                     {
                         <form asp-action="Like" asp-route-id="@Model.Id" method="post" class="d-inline">
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="bi bi-hand-thumbs-up me-1"></i>Like (+1)
+                            <button type="submit" class="btn @(currentUserLiked ? "btn-danger" : "btn-outline-danger")" aria-pressed="@currentUserLiked.ToString().ToLowerInvariant()">
+                                <i class="bi @(currentUserLiked ? "bi-heart-fill" : "bi-heart") me-1" aria-hidden="true"></i>
+                                @(currentUserLiked ? "Remove like" : "Like CV")
                             </button>
                         </form>
                     }
@@ -60,18 +114,106 @@
                             var candidateVal = Model.CandidateProfile?.AttributeValues?.FirstOrDefault(av => av.AttributeDefinitionId == req.AttributeDefinitionId);
                             bool isMissing = candidateVal == null || string.IsNullOrWhiteSpace(candidateVal.Value);
 
-                            <li class="list-group-item @(isMissing ? "list-group-item-danger" : "") d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="badge bg-secondary me-1">@req.AttributeDefinition.Category</span>
+                            <li class="list-group-item @(isMissing ? "list-group-item-danger" : "") cv-attribute-row">
+                                <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                    <div>
+                                    <span class="badge bg-secondary me-1">@req.AttributeDefinition.Category.Name</span>
                                     <strong>@req.AttributeDefinition.Name</strong>
+                                    </div>
+                                    <span class="badge bg-danger missing-badge @(isMissing ? string.Empty : "d-none")">Missing</span>
                                 </div>
-                                @if (isMissing)
+
+                                @if (canEditAttributes)
                                 {
-                                    <span class="badge bg-danger">MISSING</span>
+                                    var inputId = $"cvAttribute_{req.AttributeDefinitionId:N}";
+                                    var currentValue = candidateVal?.Value ?? string.Empty;
+                                    <form asp-action="UpdateAttributeValue" method="post" class="cv-attribute-form">
+                                        <input type="hidden" name="cvId" value="@Model.Id" />
+                                        <input type="hidden" name="attributeDefinitionId" value="@req.AttributeDefinitionId" />
+                                        <input type="hidden" name="version" value="@(candidateVal?.Version)" />
+                                        <input type="hidden" name="cvVersion" value="@Model.Version" data-cv-version />
+
+                                        <label for="@inputId" class="visually-hidden">@req.AttributeDefinition.Name</label>
+                                        <div class="input-group">
+                                            @switch (req.AttributeDefinition.DataType)
+                                            {
+                                                case AttributeDataType.Dropdown:
+                                                    <select id="@inputId" name="value" class="form-select" aria-label="@req.AttributeDefinition.Name">
+                                                        <option value="">Not set</option>
+                                                        @foreach (var option in req.AttributeDefinition.Options.OrderBy(option => option.Value))
+                                                        {
+                                                            <option value="@option.Value" selected="@(string.Equals(option.Value, currentValue, StringComparison.OrdinalIgnoreCase))">@option.Value</option>
+                                                        }
+                                                    </select>
+                                                    break;
+                                                case AttributeDataType.Boolean:
+                                                    <select id="@inputId" name="value" class="form-select" aria-label="@req.AttributeDefinition.Name">
+                                                        <option value="">Not set</option>
+                                                        <option value="true" selected="@(string.Equals(currentValue, "true", StringComparison.OrdinalIgnoreCase))">Yes</option>
+                                                        <option value="false" selected="@(string.Equals(currentValue, "false", StringComparison.OrdinalIgnoreCase))">No</option>
+                                                    </select>
+                                                    break;
+                                                case AttributeDataType.Numeric:
+                                                    <input id="@inputId" name="value" value="@currentValue" type="number" step="any" class="form-control" />
+                                                    break;
+                                                case AttributeDataType.Date:
+                                                    <input id="@inputId" name="value" value="@currentValue" type="date" class="form-control" />
+                                                    break;
+                                                case AttributeDataType.MarkdownText:
+                                                    <textarea id="@inputId" name="value" class="form-control" rows="2">@currentValue</textarea>
+                                                    break;
+                                                case AttributeDataType.ImageReference:
+                                                    <div class="w-100">
+                                                        <input id="@inputId" name="value" value="@currentValue" type="url" class="form-control mb-2" maxlength="2048" placeholder="https://…" />
+                                                        <div class="cloud-image-dropzone"
+                                                             tabindex="0"
+                                                             role="button"
+                                                             aria-label="Upload @req.AttributeDefinition.Name"
+                                                             data-cloud-image-upload
+                                                             data-target="#@inputId"
+                                                             data-cloud-name="@CloudUpload.Value.CloudName"
+                                                             data-upload-preset="@CloudUpload.Value.UploadPreset">
+                                                            <input type="file" accept="image/*" class="d-none" />
+                                                            <img class="rounded d-none" data-upload-preview alt="@req.AttributeDefinition.Name preview" />
+                                                            <div>
+                                                                <div class="small fw-semibold">Drop an image or choose a file</div>
+                                                                <div class="small text-muted" data-upload-status aria-live="polite">Up to 10 MB.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    break;
+                                                default:
+                                                    <input id="@inputId" name="value" value="@currentValue" type="text" class="form-control" maxlength="1000" />
+                                                    break;
+                                            }
+                                            <button type="submit" class="btn btn-outline-primary cv-attribute-save">
+                                                <span class="save-label"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Save</span>
+                                                <span class="saving-label d-none"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Saving</span>
+                                            </button>
+                                        </div>
+                                        <div class="form-text cv-attribute-status" aria-live="polite">Changes update the candidate profile and every CV using this attribute.</div>
+                                    </form>
+                                }
+                                else if (isMissing)
+                                {
+                                    <span class="text-danger">Not provided</span>
                                 }
                                 else
                                 {
-                                    <span>@candidateVal!.Value</span>
+                                    @if (req.AttributeDefinition.DataType == AttributeDataType.MarkdownText)
+                                    {
+                                        <div class="markdown-content">@Html.Raw(MarkdownRenderer.Render(candidateVal!.Value))</div>
+                                    }
+                                    else if (req.AttributeDefinition.DataType == AttributeDataType.ImageReference)
+                                    {
+                                        <a href="@candidateVal!.Value" target="_blank" rel="noopener noreferrer">
+                                            <img src="@candidateVal.Value" alt="@req.AttributeDefinition.Name" class="attribute-image-preview" />
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span>@candidateVal!.Value</span>
+                                    }
                                 }
                             </li>
                         }
@@ -85,30 +227,12 @@
 
             <div class="col-md-7 mb-4">
                 <h5 class="fw-bold mb-3"><i class="bi bi-kanban me-2"></i>Relevant Projects</h5>
-                @{
-                    var positionTags = (Model.Position?.Tags ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim().ToLower()).ToList();
-                    var allProjects = Model.CandidateProfile?.Projects ?? new List<Itransition.Models.Profiles.ProjectProfile>();
-
-                    var relevantProjects = new List<Itransition.Models.Profiles.ProjectProfile>();
-
-                    if (positionTags.Any())
-                    {
-                        foreach (var proj in allProjects)
-                        {
-                            var projTags = proj.TechnologyTags.Select(t => t.TagName.ToLower()).ToList();
-                            if (projTags.Intersect(positionTags).Any())
-                            {
-                                relevantProjects.Add(proj);
-                            }
-                        }
-                    }
-                    else
-                    {
-                    }
-                }
-
                 @if (relevantProjects.Any())
                 {
+                    <p class="text-muted small">
+                        Showing up to @position.MaxProjectInCv most recent project@(position.MaxProjectInCv == 1 ? string.Empty : "s")
+                        @(positionTags.Count > 0 ? "matching the position tags" : "from the candidate profile").
+                    </p>
                     <div class="row g-3">
                         @foreach (var proj in relevantProjects)
                         {
@@ -117,11 +241,11 @@
                                     <div class="card-body">
                                         <h6 class="card-title fw-bold">@proj.Name</h6>
                                         <h6 class="card-subtitle mb-2 text-muted small">@proj.StartDate?.ToString("MMM yyyy") - @(proj.EndDate?.ToString("MMM yyyy") ?? "Present")</h6>
-                                        <p class="card-text small mb-2">@proj.Description</p>
+                                        <div class="card-text small mb-2 markdown-content">@Html.Raw(MarkdownRenderer.Render(proj.Description))</div>
                                         <div>
                                             @foreach (var tag in proj.TechnologyTags)
                                             {
-                                                bool isMatch = positionTags.Contains(tag.TagName.ToLower());
+                                                bool isMatch = positionTags.Contains(tag.TagName);
                                                 <span class="badge @(isMatch ? "bg-primary" : "bg-secondary") me-1">@tag.TagName</span>
                                             }
                                         </div>
@@ -134,9 +258,13 @@
                 else
                 {
                     <div class="alert alert-secondary">
-                        @if (!positionTags.Any())
+                        @if (position.MaxProjectInCv <= 0)
                         {
-                            <text>This position does not specify any Technology Tags to match against.</text>
+                            <text>This position is configured not to include projects.</text>
+                        }
+                        else if (positionTags.Count == 0)
+                        {
+                            <text>The candidate has no projects to include.</text>
                         }
                         else
                         {
@@ -158,9 +286,114 @@
             </div>
         </div>
     </div>
-    <div class="card-footer bg-light py-3">
+    <div class="card-footer bg-light py-3 d-flex flex-wrap justify-content-between align-items-center gap-2 action-bar">
         <a asp-action="Index" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back to List
         </a>
+        @if (canManageCv)
+        {
+            <div class="d-flex flex-wrap gap-2">
+                @if (!isPublished)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit draft
+                    </a>
+                    <form asp-action="Publish" asp-route-id="@Model.Id" method="post">
+                        <input type="hidden" name="version" value="@Model.Version" data-cv-version />
+                        <button type="submit"
+                                class="btn btn-success"
+                                title="@(missingPublicationFields.Count > 0 ? "Complete all required information first" : "Make this CV visible to recruiters")">
+                            <i class="bi bi-send-check me-1" aria-hidden="true"></i>Publish CV
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Unpublish" asp-route-id="@Model.Id" method="post">
+                        <input type="hidden" name="version" value="@Model.Version" data-cv-version />
+                        <button type="submit" class="btn btn-outline-warning" onclick="return confirm('Hide this CV from recruiters and return it to Draft?');">
+                            <i class="bi bi-eye-slash me-1" aria-hidden="true"></i>Unpublish
+                        </button>
+                    </form>
+                }
+            </div>
+        }
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const forms = document.querySelectorAll('.cv-attribute-form');
+            const notice = document.getElementById('cvInlineNotice');
+
+            const showNotice = (message, isError) => {
+                if (!notice) return;
+                notice.className = `alert d-flex gap-2 align-items-start ${isError ? 'alert-danger' : 'alert-success'}`;
+                notice.setAttribute('role', isError ? 'alert' : 'status');
+                notice.innerHTML = `<i class="bi ${isError ? 'bi-exclamation-circle' : 'bi-check-circle'} flex-shrink-0" aria-hidden="true"></i><span></span>`;
+                notice.querySelector('span').textContent = message;
+                notice.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                if (!isError) {
+                    window.setTimeout(() => notice.classList.add('d-none'), 4000);
+                }
+            };
+
+            forms.forEach(form => {
+                form.addEventListener('submit', async event => {
+                    event.preventDefault();
+                    const button = form.querySelector('.cv-attribute-save');
+                    const saveLabel = form.querySelector('.save-label');
+                    const savingLabel = form.querySelector('.saving-label');
+                    const status = form.querySelector('.cv-attribute-status');
+
+                    button.disabled = true;
+                    saveLabel.classList.add('d-none');
+                    savingLabel.classList.remove('d-none');
+                    status.textContent = 'Saving the master profile value…';
+
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        let payload = null;
+                        try {
+                            payload = await response.json();
+                        } catch {
+                            payload = null;
+                        }
+
+                        if (!response.ok) {
+                            throw new Error(payload?.error ?? 'The value could not be saved. Reload the page and try again.');
+                        }
+
+                        form.querySelector('input[name="version"]').value = payload.version;
+                        document.querySelectorAll('[data-cv-version]').forEach(input => {
+                            input.value = payload.cvVersion;
+                        });
+
+                        const row = form.closest('.cv-attribute-row');
+                        const missingBadge = row?.querySelector('.missing-badge');
+                        const hasValue = typeof payload.value === 'string' && payload.value.trim().length > 0;
+                        row?.classList.toggle('list-group-item-danger', !hasValue);
+                        missingBadge?.classList.toggle('d-none', hasValue);
+
+                        status.textContent = 'Saved. This value is now used by every related CV.';
+                        showNotice('Attribute saved successfully.', false);
+                    } catch (error) {
+                        const message = error instanceof Error ? error.message : 'The value could not be saved.';
+                        status.textContent = message;
+                        showNotice(message, true);
+                    } finally {
+                        button.disabled = false;
+                        saveLabel.classList.remove('d-none');
+                        savingLabel.classList.add('d-none');
+                    }
+                });
+            });
+        })();
+    </script>
+}

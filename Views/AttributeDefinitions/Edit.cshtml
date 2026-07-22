@@ -14,6 +14,7 @@
                 <form asp-action="Edit">
                     <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
                     <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="Version" />
 
                     <div class="mb-3">
                         <label asp-for="Name" class="form-label fw-semibold">Name</label>
@@ -25,12 +26,12 @@
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Category" class="form-label fw-semibold">Category</label>
+                        <label asp-for="CategoryId" class="form-label fw-semibold">Category</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-folder"></i></span>
-                            <input asp-for="Category" class="form-control" />
+                            <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.CategoryId"></select>
                         </div>
-                        <span asp-validation-for="Category" class="text-danger small"></span>
+                        <span asp-validation-for="CategoryId" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
@@ -46,7 +47,11 @@
                         <label asp-for="DataType" class="form-label fw-semibold">Data Type</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-code-square"></i></span>
-                            <select asp-for="DataType" class="form-select"></select>
+                            <select asp-for="DataType" class="form-select" disabled="@Model.IsBuiltIn"></select>
+                            @if (Model.IsBuiltIn)
+                            {
+                                <input type="hidden" asp-for="DataType" />
+                            }
                         </div>
                         <span asp-validation-for="DataType" class="text-danger small"></span>
                     </div>
