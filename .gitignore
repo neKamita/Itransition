@@ -49,3 +49,4 @@ docker-compose.override.yml
 # Publish artifacts
 publish/
 artifacts/
+appsettings.json
