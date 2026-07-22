@@ -1,59 +1,78 @@
 @model IEnumerable<Itransition.Models.Attributes.AttributeDefinition>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Attribute Definitions";
 }
 
-<h1>Index</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2><i class="bi bi-tags me-2"></i>Attribute Definitions</h2>
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Category)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DataType)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.RowVersion)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Category)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.DataType)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.RowVersion)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+<form id="bulkForm" method="post">
+    <div class="mb-3 d-flex gap-2">
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Create New
+        </a>
+        <button type="submit" asp-action="DeleteSelected" class="btn btn-danger btn-sm" onclick="return confirm('Delete selected items?')">
+            <i class="bi bi-trash me-1"></i>Delete Selected
+        </button>
+    </div>
+
+    <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 40px;">
+                        <input type="checkbox" id="selectAll" class="form-check-input" />
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Name)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Category)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Description)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.DataType)
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+        @foreach (var item in Model) {
+                <tr>
+                    <td>
+                        <input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input select-item" />
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-primary text-decoration-none">
+                            <i class="bi bi-tag me-1"></i>@item.Name
+                        </a>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">@item.Category</span>
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Description)
+                    </td>
+                    <td>
+                        <span class="badge bg-info text-dark">@item.DataType</span>
+                    </td>
+                </tr>
+        }
+            </tbody>
+        </table>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        document.getElementById('selectAll').addEventListener('change', function() {
+            var checkboxes = document.querySelectorAll('.select-item');
+            for (var checkbox of checkboxes) {
+                checkbox.checked = this.checked;
+            }
+        });
+    </script>
 }
-    </tbody>
-</table>

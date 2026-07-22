@@ -4,69 +4,86 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>@ViewData["Title"] - Itransition</title>
-    <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
     <link rel="stylesheet" href="~/Itransition.styles.css" asp-append-version="true"/>
 </head>
 <body>
 <header>
-    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow mb-4">
         <div class="container-fluid">
-            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Itransition</a>
+            <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
+                <i class="bi bi-layers-half me-1"></i>Itransition
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                     aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                <ul class="navbar-nav flex-grow-1">
+                <ul class="navbar-nav flex-grow-1 me-3">
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="AttributeOptions" asp-action="Index">Attribute Options</a>
+                        <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">
+                            <i class="bi bi-house-door me-1"></i>Home
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Positions" asp-action="Index">Positions</a>
+                        <a class="nav-link" asp-area="" asp-controller="AttributeOptions" asp-action="Index">
+                            <i class="bi bi-sliders me-1"></i>Options
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-controller="PositionAttributes" asp-action="Index">Position Requirements</a>
+                        <a class="nav-link" asp-area="" asp-controller="Positions" asp-action="Index">
+                            <i class="bi bi-briefcase me-1"></i>Positions
+                        </a>
                     </li>
-                        <li class="nav-item">
-                        <a class="nav-link text-dark" asp-controller="CandidateProfiles" asp-action="Index">Profile</a>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="PositionAttributes" asp-action="Index">
+                            <i class="bi bi-list-check me-1"></i>Requirements
+                        </a>
                     </li>
-                       </li>
-                        <li class="nav-item">
-                        <a class="nav-link text-dark" asp-controller="Cvs" asp-action="Index">Cvs</a>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="CandidateProfiles" asp-action="Index">
+                            <i class="bi bi-person-badge me-1"></i>Profile
+                        </a>
                     </li>
-                    <partial name="_LoginPartial"/>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Cvs" asp-action="Index">
+                            <i class="bi bi-file-earmark-person me-1"></i>CVs
+                        </a>
+                    </li>
                     @if (User.IsInRole("Admin")){
                         <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Admin">Admin</a>
-                    </li>
-                    }
-                    else if (User.IsInRole("User")){
-                        <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="User">User</a>
-                    </li>
+                            <a class="nav-link text-warning" asp-area="" asp-controller="Home" asp-action="Admin">
+                                <i class="bi bi-shield-lock me-1"></i>Admin
+                            </a>
+                        </li>
                     }
                 </ul>
+
+                <form class="d-flex me-3" asp-controller="Home" asp-action="Search" method="get">
+                    <div class="input-group input-group-sm">
+                        <input class="form-control" type="search" name="query" placeholder="Search..." required />
+                        <button class="btn btn-outline-light" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <partial name="_LoginPartial"/>
             </div>
         </div>
     </nav>
 </header>
 <div class="container">
-    <main role="main" class="pb-3">
+    <main role="main" class="pb-4">
         @RenderBody()
     </main>
 </div>
 
-<footer class="border-top footer text-muted">
-    <div class="container">
-        &copy; 2026 - Itransition - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+<footer class="border-top footer text-muted py-3 bg-light">
+    <div class="container text-center">
+        &copy; 2026 - Itransition CV Management Platform
     </div>
 </footer>
 <script src="~/lib/jquery/dist/jquery.min.js"></script>

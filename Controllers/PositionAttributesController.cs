@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Itransition.Controllers
 {
+    [Authorize(Roles = "Administrator,Recruiter")]
     public class PositionAttributesController : Controller
     {
         private readonly ApplicationDbContext _context;

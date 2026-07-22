@@ -7,9 +7,13 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Itransition.Data;
 using Itransition.Models.Cvs;
+using System.Security.Claims;
+
+using Microsoft.AspNetCore.Authorization;
 
 namespace Itransition.Controllers
 {
+    [Authorize]
     public class CvsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -50,7 +54,7 @@ namespace Itransition.Controllers
         public IActionResult Create()
         {
             ViewData["CandidateProfileId"] = new SelectList(_context.CandidateProfiles, "Id", "Id");
-            ViewData["PositionId"] = new SelectList(_context.Positions, "Id", "Id");
+            ViewData["PositionId"] = new SelectList(_context.Positions, "Id", "Title");
             return View();
         }
 
@@ -65,6 +69,13 @@ namespace Itransition.Controllers
             {
                 cv.Id = Guid.NewGuid();
                 _context.Add(cv);
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var myProfile = await _context.CandidateProfiles.FirstOrDefaultAsync(c => c.UserId == currentUserId);
+                if (myProfile != null)
+                {
+                    cv.CandidateProfileId = myProfile.Id;
+                }
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
@@ -167,5 +178,19 @@ namespace Itransition.Controllers
         {
             return _context.Cvs.Any(e => e.Id == id);
         }
+
+          [HttpPost]
+    [Authorize(Roles="Administrator,Recruiter")]
+    public async Task<IActionResult> Like(Guid id)
+    {
+        var cv = await _context.Cvs.FindAsync(id);
+        if(cv !=null){
+            cv.LikesCount++;
+            await _context.SaveChangesAsync();
+        }
+        return RedirectToAction(nameof(Details), new {id});
     }
+    }
+
+
 }

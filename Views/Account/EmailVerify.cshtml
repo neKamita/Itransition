@@ -5,23 +5,39 @@
     ViewData["Title"] = "Email Verification";
     Layout = "_AccountLayout";
 }
-<div>
-    <h2>Email Verification</h2>
-    <form method="post" asp-action="EmailVerify">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="mb-3">
-            <label asp-for="Email" class="form-label"></label>
-            <input asp-for="Email" class="form-control" />
-            <span asp-validation-for="Email" class="text-danger"></span>
+
+<div class="row justify-content-center">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-dark text-white text-center py-3">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-envelope-check me-2"></i>Verify Email</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" asp-action="EmailVerify">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold">Enter your registered Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                        </div>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 mt-2">
+                        <i class="bi bi-arrow-right-circle me-1"></i>Verify Email
+                    </button>
+                </form>
+            </div>
+            <div class="card-footer bg-light text-center py-3">
+                <a asp-controller="Account" asp-action="Login" class="small fw-bold text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Login
+                </a>
+            </div>
         </div>
-        <button type="submit"  class="btn btn-primary">Verify Email</button>
-        <div>
-            <p>
-                <a asp-controller="Account" asp-action="Login">Back to Login</a>
-            </p>
-        </div>
-    </form>
+    </div>
 </div>
 
 @section Scripts {

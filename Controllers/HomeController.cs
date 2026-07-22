@@ -4,6 +4,8 @@ using Itransition.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Itransition.Data;
+using Itransition.Models.Positions;
+
 
 namespace Itransition.Controllers;
 
@@ -48,6 +50,19 @@ public class HomeController : Controller
     public HomeController(ApplicationDbContext context)
     {
         _context = context;
+    }
+
+    public async Task<IActionResult> Search(string query)
+    {
+        if (string.IsNullOrEmpty(query))
+        {
+            return View("SearchResults", new List<Position>());
+        }
+        var results = await _context.Positions
+            .Where(p => p.Title.Contains(query) || p.Description.Contains(query) || p.Company.Contains(query) || p.Level.Contains(query))
+            .ToListAsync();
+
+        return View("SearchResults", results);
     }
 
 
