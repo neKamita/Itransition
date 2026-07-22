@@ -1,4 +1,4 @@
-@model Itransition.Models.Profiles.CandidateProfile
+@model Itransition.ViewModel.CandidateProfileViewModel
 
 @{
     ViewData["Title"] = "Edit Candidate Profile";
@@ -15,7 +15,7 @@
                     @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
                     <input type="hidden" asp-for="Id" />
-                    <input type="hidden" asp-for="UserId" />
+                    <input type="hidden" asp-for="RowVersion" />
                     <input type="hidden" asp-for="PersonalPhotoUrl" id="photoUrlInput" />
                     <input type="file" id="localFileInput" accept="image/*" class="d-none" />
 

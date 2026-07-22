@@ -24,6 +24,16 @@
                     </div>
 
                     <div class="mb-3">
+                        <label asp-for="Tags" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-tags"></i></span>
+                            <input asp-for="Tags" class="form-control" placeholder="e.g. C#, .NET, React" />
+                        </div>
+                        <span asp-validation-for="Tags" class="text-danger small"></span>
+                    </div>
+
+
+                    <div class="mb-3">
                         <label asp-for="Description" class="form-label fw-semibold">Description</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-card-text"></i></span>

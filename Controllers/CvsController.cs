@@ -40,7 +40,15 @@ namespace Itransition.Controllers
 
             var cv = await _context.Cvs
                 .Include(c => c.CandidateProfile)
+                    .ThenInclude(cp => cp.AttributeValues)
+                        .ThenInclude(av => av.AttributeDefinition)
+                            .ThenInclude(a => a.Options)
+                .Include(c => c.CandidateProfile)
+                    .ThenInclude(cp => cp.Projects)
+                        .ThenInclude(p => p.TechnologyTags)
                 .Include(c => c.Position)
+                    .ThenInclude(p => p.PositionRequiredAttributes)
+                        .ThenInclude(pa => pa.AttributeDefinition)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (cv == null)
             {
@@ -51,10 +59,17 @@ namespace Itransition.Controllers
         }
 
         // GET: Cvs/Create
-        public IActionResult Create()
+        public IActionResult Create(Guid? positionId = null)
         {
-            ViewData["CandidateProfileId"] = new SelectList(_context.CandidateProfiles, "Id", "Id");
-            ViewData["PositionId"] = new SelectList(_context.Positions, "Id", "Title");
+            var selectList = new SelectList(_context.Positions, "Id", "Title", positionId);
+            ViewData["PositionId"] = selectList;
+            
+            if (User.IsInRole("Recruiter") || User.IsInRole("Administrator"))
+            {
+                ViewData["CandidateProfileId"] = new SelectList(
+                    _context.CandidateProfiles.Select(c => new { c.Id, FullName = c.FirstName + " " + c.LastName }), 
+                    "Id", "FullName");
+            }
             return View();
         }
 
@@ -63,25 +78,51 @@ namespace Itransition.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,CandidateProfileId,PositionId,Status,LikesCount,DislikesCount,CreatedDate,UpdatedDate,RowVersion")] Cv cv)
+        public async Task<IActionResult> Create(Guid PositionId, Guid? CandidateProfileId)
         {
-            if (ModelState.IsValid)
+            Guid finalCandidateId = Guid.Empty;
+
+            if (User.IsInRole("Candidate"))
             {
-                cv.Id = Guid.NewGuid();
-                _context.Add(cv);
                 var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 var myProfile = await _context.CandidateProfiles.FirstOrDefaultAsync(c => c.UserId == currentUserId);
-                if (myProfile != null)
+                if (myProfile == null)
                 {
-                    cv.CandidateProfileId = myProfile.Id;
+                    return BadRequest("You need to create a Candidate Profile first.");
                 }
-
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                finalCandidateId = myProfile.Id;
             }
-            ViewData["CandidateProfileId"] = new SelectList(_context.CandidateProfiles, "Id", "Id", cv.CandidateProfileId);
-            ViewData["PositionId"] = new SelectList(_context.Positions, "Id", "Id", cv.PositionId);
-            return View(cv);
+            else
+            {
+                if (CandidateProfileId == null || CandidateProfileId == Guid.Empty)
+                {
+                    ModelState.AddModelError("CandidateProfileId", "Please select a candidate.");
+                    ViewData["PositionId"] = new SelectList(_context.Positions, "Id", "Title", PositionId);
+                    ViewData["CandidateProfileId"] = new SelectList(
+                        _context.CandidateProfiles.Select(c => new { c.Id, FullName = c.FirstName + " " + c.LastName }), 
+                        "Id", "FullName");
+                    return View();
+                }
+                finalCandidateId = CandidateProfileId.Value;
+            }
+
+            var cv = new Cv
+            {
+                Id = Guid.NewGuid(),
+                CandidateProfileId = finalCandidateId,
+                PositionId = PositionId,
+                Status = "New",
+                LikesCount = 0,
+                DislikesCount = 0,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow,
+                CandidateProfile = null!,
+                Position = null!
+            };
+
+            _context.Add(cv);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id = cv.Id });
         }
 
         // GET: Cvs/Edit/5

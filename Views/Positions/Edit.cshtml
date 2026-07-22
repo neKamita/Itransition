@@ -14,6 +14,7 @@
                 <form asp-action="Edit">
                     <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
                     <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="RowVersion" />
 
                     <div class="mb-3">
                         <label asp-for="Title" class="form-label fw-semibold">Title</label>
@@ -22,6 +23,15 @@
                             <input asp-for="Title" class="form-control" />
                         </div>
                         <span asp-validation-for="Title" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Tags" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-tags"></i></span>
+                            <input asp-for="Tags" class="form-control" placeholder="e.g. C#, .NET, React" />
+                        </div>
+                        <span asp-validation-for="Tags" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">

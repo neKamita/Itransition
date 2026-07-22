@@ -23,7 +23,18 @@
 
         <div class="mb-3 p-3 bg-light rounded-3">
             <h6 class="fw-bold"><i class="bi bi-card-text me-1"></i>Description</h6>
-            <p class="mb-0 text-secondary">@(string.IsNullOrEmpty(Model.Description) ? "No description provided." : Model.Description)</p>
+            <p class="mb-2 text-secondary">@(string.IsNullOrEmpty(Model.Description) ? "No description provided." : Model.Description)</p>
+
+            @if (!string.IsNullOrEmpty(Model.Tags))
+            {
+                <h6 class="fw-bold mt-3"><i class="bi bi-tags me-1"></i>Technology Tags</h6>
+                <div>
+                    @foreach (var tag in Model.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        <span class="badge bg-primary me-1">@tag.Trim()</span>
+                    }
+                </div>
+            }
         </div>
 
         <div class="row mb-3">
@@ -34,16 +45,137 @@
                 <strong><i class="bi bi-clock me-1"></i>Created:</strong> @Model.CreatedDate.ToString("g")
             </div>
         </div>
+
+        @if (User.IsInRole("Administrator") || User.IsInRole("Recruiter"))
+        {
+            var availableAttrs = ViewBag.AvailableAttributes as IEnumerable<Itransition.Models.Attributes.AttributeDefinition>;
+
+            <hr class="my-4" />
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <h5 class="fw-bold"><i class="bi bi-check2-square me-2"></i>Required Attributes</h5>
+                    <p class="text-muted small mb-2">Attributes that candidate MUST have to generate a CV.</p>
+                    <ul class="list-group mb-3 shadow-sm">
+                        @if (!Model.PositionRequiredAttributes.Any())
+                        {
+                            <li class="list-group-item text-muted">No requirements set.</li>
+                        }
+                        @foreach (var req in Model.PositionRequiredAttributes)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-secondary me-1">@req.AttributeDefinition.Category</span>
+                                    @req.AttributeDefinition.Name
+                                </div>
+                                <form asp-action="RemoveRequirement" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@req.Id" />
+                                    <input type="hidden" name="positionId" value="@Model.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove requirement?');"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </li>
+                        }
+                    </ul>
+
+                    <form asp-action="AddRequirement" method="post" class="card shadow-sm border-0 p-3 bg-light">
+                        <input type="hidden" name="positionId" value="@Model.Id" />
+                        <h6 class="fw-bold mb-2 fs-6">Add Requirement</h6>
+                        <div class="input-group input-group-sm">
+                            <select name="attributeId" class="form-select" required>
+                                <option value="">-- Select Attribute --</option>
+                                @if (availableAttrs != null)
+                                {
+                                    foreach (var attr in availableAttrs)
+                                    {
+                                        <option value="@attr.Id">[@attr.Category] @attr.Name</option>
+                                    }
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-plus"></i></button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <h5 class="fw-bold"><i class="bi bi-shield-lock me-2"></i>Access Rules</h5>
+                    <p class="text-muted small mb-2">If Restricted, only candidates matching rules can apply/see.</p>
+                    <ul class="list-group mb-3 shadow-sm">
+                        @if (!Model.PositionAccessRules.Any())
+                        {
+                            <li class="list-group-item text-muted">No rules set.</li>
+                        }
+                        @foreach (var rule in Model.PositionAccessRules)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-secondary me-1">@rule.AttributeDefinition.Category</span>
+                                    @rule.AttributeDefinition.Name
+                                    <span class="badge bg-dark mx-1">@rule.Operator</span>
+                                    <strong>@rule.TargetValue</strong>
+                                </div>
+                                <form asp-action="RemoveAccessRule" method="post" class="d-inline">
+                                    <input type="hidden" name="id" value="@rule.Id" />
+                                    <input type="hidden" name="positionId" value="@Model.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove rule?');"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </li>
+                        }
+                    </ul>
+
+                    <form asp-action="AddAccessRule" method="post" class="card shadow-sm border-0 p-3 bg-light">
+                        <input type="hidden" name="positionId" value="@Model.Id" />
+                        <h6 class="fw-bold mb-2 fs-6">Add Access Rule</h6>
+                        <div class="mb-2">
+                            <select name="attributeId" class="form-select form-select-sm" required>
+                                <option value="">-- Select Attribute --</option>
+                                @if (availableAttrs != null)
+                                {
+                                    foreach (var attr in availableAttrs)
+                                    {
+                                        <option value="@attr.Id">[@attr.Category] @attr.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <select name="operatorType" class="form-select" style="max-width: 100px;" required>
+                                <option value="==">==</option>
+                                <option value="!=">!=</option>
+                                <option value=">">&gt;</option>
+                                <option value="<">&lt;</option>
+                                <option value="CONTAINS">Contains</option>
+                            </select>
+                            <input type="text" name="targetValue" class="form-control" placeholder="Value..." required />
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-plus"></i></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
     </div>
-    <div class="card-footer bg-light py-3 d-flex justify-content-between">
+    <div class="card-footer bg-light py-3 d-flex justify-content-between align-items-center">
         <a asp-action="Index" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back to List
         </a>
-        @if (User.IsInRole("Recruiter") || User.IsInRole("Administrator"))
-        {
-            <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">
-                <i class="bi bi-pencil me-1"></i>Edit Position
-            </a>
-        }
+        <div>
+            @if (User.IsInRole("Recruiter") || User.IsInRole("Administrator"))
+            {
+                <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning me-2">
+                    <i class="bi bi-pencil me-1"></i>Edit Position
+                </a>
+                <a asp-controller="Cvs" asp-action="Create" asp-route-positionId="@Model?.Id" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-plus me-1"></i>Create CV (Select Candidate)
+                </a>
+            }
+            else if (User.IsInRole("Candidate"))
+            {
+                <form asp-controller="Cvs" asp-action="Create" method="post" class="d-inline">
+                    <input type="hidden" name="PositionId" value="@Model?.Id" />
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-file-earmark-plus me-1"></i>Apply / Create CV
+                    </button>
+                </form>
+            }
+        </div>
     </div>
 </div>

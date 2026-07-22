@@ -49,6 +49,106 @@
 
         <hr class="my-4" />
 
+        <div class="row">
+            <div class="col-md-5 mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-card-checklist me-2"></i>Required Skills</h5>
+                <ul class="list-group shadow-sm">
+                    @if (Model.Position?.PositionRequiredAttributes != null && Model.Position.PositionRequiredAttributes.Any())
+                    {
+                        foreach (var req in Model.Position.PositionRequiredAttributes.OrderBy(r => r.OrderIndex))
+                        {
+                            var candidateVal = Model.CandidateProfile?.AttributeValues?.FirstOrDefault(av => av.AttributeDefinitionId == req.AttributeDefinitionId);
+                            bool isMissing = candidateVal == null || string.IsNullOrWhiteSpace(candidateVal.Value);
+
+                            <li class="list-group-item @(isMissing ? "list-group-item-danger" : "") d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-secondary me-1">@req.AttributeDefinition.Category</span>
+                                    <strong>@req.AttributeDefinition.Name</strong>
+                                </div>
+                                @if (isMissing)
+                                {
+                                    <span class="badge bg-danger">MISSING</span>
+                                }
+                                else
+                                {
+                                    <span>@candidateVal!.Value</span>
+                                }
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="list-group-item text-muted">No specific attributes required by this position.</li>
+                    }
+                </ul>
+            </div>
+
+            <div class="col-md-7 mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-kanban me-2"></i>Relevant Projects</h5>
+                @{
+                    var positionTags = (Model.Position?.Tags ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim().ToLower()).ToList();
+                    var allProjects = Model.CandidateProfile?.Projects ?? new List<Itransition.Models.Profiles.ProjectProfile>();
+
+                    var relevantProjects = new List<Itransition.Models.Profiles.ProjectProfile>();
+
+                    if (positionTags.Any())
+                    {
+                        foreach (var proj in allProjects)
+                        {
+                            var projTags = proj.TechnologyTags.Select(t => t.TagName.ToLower()).ToList();
+                            if (projTags.Intersect(positionTags).Any())
+                            {
+                                relevantProjects.Add(proj);
+                            }
+                        }
+                    }
+                    else
+                    {
+                    }
+                }
+
+                @if (relevantProjects.Any())
+                {
+                    <div class="row g-3">
+                        @foreach (var proj in relevantProjects)
+                        {
+                            <div class="col-12">
+                                <div class="card border-primary h-100 shadow-sm">
+                                    <div class="card-body">
+                                        <h6 class="card-title fw-bold">@proj.Name</h6>
+                                        <h6 class="card-subtitle mb-2 text-muted small">@proj.StartDate?.ToString("MMM yyyy") - @(proj.EndDate?.ToString("MMM yyyy") ?? "Present")</h6>
+                                        <p class="card-text small mb-2">@proj.Description</p>
+                                        <div>
+                                            @foreach (var tag in proj.TechnologyTags)
+                                            {
+                                                bool isMatch = positionTags.Contains(tag.TagName.ToLower());
+                                                <span class="badge @(isMatch ? "bg-primary" : "bg-secondary") me-1">@tag.TagName</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-secondary">
+                        @if (!positionTags.Any())
+                        {
+                            <text>This position does not specify any Technology Tags to match against.</text>
+                        }
+                        else
+                        {
+                            <text>The candidate has no projects matching the position's required tags (@string.Join(", ", positionTags)).</text>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
         <div class="row text-muted small">
             <div class="col-6">
                 <strong>Created Date:</strong> @Model.CreatedDate.ToString("g")

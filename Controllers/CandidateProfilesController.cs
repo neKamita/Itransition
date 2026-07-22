@@ -116,32 +116,51 @@ namespace Itransition.Controllers
             {
                 return NotFound();
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", candidateProfile.UserId);
-            return View(candidateProfile);
+
+            var viewModel = new CandidateProfileViewModel
+            {
+                Id = candidateProfile.Id,
+                FirstName = candidateProfile.FirstName,
+                LastName = candidateProfile.LastName,
+                Location = candidateProfile.Location,
+                PersonalPhotoUrl = candidateProfile.PersonalPhotoUrl,
+                RowVersion = candidateProfile.RowVersion
+            };
+            return View(viewModel);
         }
 
         // POST: CandidateProfiles/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,UserId,FirstName,LastName,Location,PersonalPhotoUrl,RowVersion")] CandidateProfile candidateProfile)
+        public async Task<IActionResult> Edit(Guid id, CandidateProfileViewModel model)
         {
-            if (id != candidateProfile.Id)
+            if (id != model.Id)
             {
                 return NotFound();
             }
 
             if (ModelState.IsValid)
             {
+                var profileToUpdate = await _context.CandidateProfiles.FindAsync(id);
+                if (profileToUpdate == null) return NotFound();
+
+                profileToUpdate.FirstName = model.FirstName;
+                profileToUpdate.LastName = model.LastName;
+                profileToUpdate.Location = model.Location;
+                profileToUpdate.PersonalPhotoUrl = model.PersonalPhotoUrl;
+
+                if (model.RowVersion != null)
+                {
+                    _context.Entry(profileToUpdate).Property("RowVersion").OriginalValue = model.RowVersion;
+                }
+
                 try
                 {
-                    _context.Update(candidateProfile);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!CandidateProfileExists(candidateProfile.Id))
+                    if (!CandidateProfileExists(model.Id))
                     {
                         return NotFound();
                     }
@@ -150,10 +169,9 @@ namespace Itransition.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Details), new { id = model.Id });
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Id", candidateProfile.UserId);
-            return View(candidateProfile);
+            return View(model);
         }
 
         // GET: CandidateProfiles/Delete/5
@@ -229,6 +247,7 @@ namespace Itransition.Controllers
             return Json(new { success = true });
         }
 
+
         [HttpPost]
         public async Task<IActionResult> UpdateAttributeValue(Guid id, string value)
         {
@@ -245,6 +264,9 @@ namespace Itransition.Controllers
         {
             if (string.IsNullOrWhiteSpace(name)) return BadRequest("Name is required");
             if (startDate.HasValue && endDate.HasValue && endDate < startDate) return BadRequest("End date cannot be earlier than start date");
+
+            startDate = startDate?.ToUniversalTime();
+            endDate = endDate?.ToUniversalTime();
 
             var project = new ProjectProfile
             {
@@ -264,16 +286,52 @@ namespace Itransition.Controllers
                                   .Where(t => !string.IsNullOrEmpty(t));
                 foreach (var tag in tagList)
                 {
-                    project.TechnologyTags.Add(new ProjectTechnologyTag { 
-                        Id = Guid.NewGuid(), 
-                        ProjectProfileId = project.Id, 
-                        ProjectProfile = null!, 
-                        TagName = tag 
+                    project.TechnologyTags.Add(new ProjectTechnologyTag {
+                        Id = Guid.NewGuid(),
+                        ProjectProfileId = project.Id,
+                        ProjectProfile = null!,
+                        TagName = tag
                     });
                 }
             }
 
             _context.ProjectProfiles.Add(project);
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditProject(Guid id, string name, string description, DateTime? startDate, DateTime? endDate, string tags)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return BadRequest("Name is required");
+            if (startDate.HasValue && endDate.HasValue && endDate < startDate) return BadRequest("End date cannot be earlier than start date");
+
+            var project = await _context.ProjectProfiles.Include(p => p.TechnologyTags).FirstOrDefaultAsync(p => p.Id == id);
+            if (project == null) return NotFound("Project not found");
+
+            project.Name = name;
+            project.Description = description;
+            project.StartDate = startDate?.ToUniversalTime();
+            project.EndDate = endDate?.ToUniversalTime();
+
+            _context.ProjectTechnologyTags.RemoveRange(project.TechnologyTags);
+
+            if (!string.IsNullOrWhiteSpace(tags))
+            {
+                var tagList = tags.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                  .Select(t => t.Trim())
+                                  .Where(t => !string.IsNullOrEmpty(t));
+                foreach (var tag in tagList)
+                {
+                    _context.ProjectTechnologyTags.Add(new ProjectTechnologyTag {
+                        Id = Guid.NewGuid(),
+                        ProjectProfileId = project.Id,
+                        ProjectProfile = null!,
+                        TagName = tag
+                    });
+                }
+            }
+
             await _context.SaveChangesAsync();
             return Json(new { success = true });
         }

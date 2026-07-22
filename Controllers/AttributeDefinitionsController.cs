@@ -8,8 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Itransition.Data;
 using Itransition.Models.Attributes;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace Itransition.Controllers
 {
+    [Authorize(Roles = "Administrator,Recruiter")]
     public class AttributeDefinitionsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -34,6 +37,7 @@ namespace Itransition.Controllers
             }
 
             var attributeDefinition = await _context.AttributeDefinitions
+                .Include(m => m.Options)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (attributeDefinition == null)
             {
@@ -153,6 +157,35 @@ namespace Itransition.Controllers
         private bool AttributeDefinitionExists(Guid id)
         {
             return _context.AttributeDefinitions.Any(e => e.Id == id);
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddOption(Guid attributeId, string optionValue)
+        {
+            if (!string.IsNullOrWhiteSpace(optionValue))
+            {
+                var attr = await _context.AttributeDefinitions.FindAsync(attributeId);
+                if (attr != null && attr.DataType == AttributeDataType.Dropdown)
+                {
+                    var opt = new AttributeOption { Id = Guid.NewGuid(), AttributeDefinitionId = attributeId, Value = optionValue.Trim() };
+                    _context.AttributeOptions.Add(opt);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            return RedirectToAction(nameof(Details), new { id = attributeId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveOption(Guid optionId, Guid attributeId)
+        {
+            var opt = await _context.AttributeOptions.FindAsync(optionId);
+            if (opt != null && opt.AttributeDefinitionId == attributeId)
+            {
+                _context.AttributeOptions.Remove(opt);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Details), new { id = attributeId });
         }
     }
 }

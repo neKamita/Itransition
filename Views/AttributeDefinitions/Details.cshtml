@@ -31,6 +31,51 @@
             </tbody>
         </table>
     </div>
+    
+    @if (Model.DataType == Itransition.Models.Attributes.AttributeDataType.Dropdown)
+    {
+        <div class="card-body p-4 border-top bg-light">
+            <h5 class="fw-bold mb-3"><i class="bi bi-list-ul me-2"></i>Dropdown Options</h5>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    @if (Model.Options.Any())
+                    {
+                        <ul class="list-group mb-3">
+                            @foreach (var opt in Model.Options)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    @opt.Value
+                                    <form asp-action="RemoveOption" method="post" class="d-inline">
+                                        <input type="hidden" name="optionId" value="@opt.Id" />
+                                        <input type="hidden" name="attributeId" value="@Model.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this option?');">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="alert alert-secondary">No options defined yet.</div>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <form asp-action="AddOption" method="post" class="card shadow-sm border-0 p-3">
+                        <h6 class="fw-bold mb-2">Add New Option</h6>
+                        <input type="hidden" name="attributeId" value="@Model.Id" />
+                        <div class="input-group">
+                            <input type="text" name="optionValue" class="form-control" placeholder="Option value..." required />
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Add</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+
     <div class="card-footer bg-light py-3 d-flex justify-content-between">
         <a asp-action="Index" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back to List

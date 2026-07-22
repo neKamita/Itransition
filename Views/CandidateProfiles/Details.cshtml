@@ -96,10 +96,41 @@
                                         <td><span class="badge bg-secondary">@attr.AttributeDefinition?.Category</span></td>
                                         <td class="fw-semibold">@attr.AttributeDefinition?.Name</td>
                                         <td>
-                                            <!-- Simple value display for now, can be made inline-editable -->
-                                            @(string.IsNullOrEmpty(attr.Value) ? Html.Raw("<span class='text-danger'>Empty</span>") : attr.Value)
+                                            @if (attr.AttributeDefinition?.DataType == Itransition.Models.Attributes.AttributeDataType.Dropdown)
+                                            {
+                                                <select id="val_@attr.Id" class="form-select form-select-sm">
+                                                    <option value="">-- Select --</option>
+                                                    @if (attr.AttributeDefinition.Options != null)
+                                                    {
+                                                        foreach (var opt in attr.AttributeDefinition.Options)
+                                                        {
+                                                            if (attr.Value == opt.Value)
+                                                            {
+                                                                <option value="@opt.Value" selected>@opt.Value</option>
+                                                            }
+                                                            else
+                                                            {
+                                                                <option value="@opt.Value">@opt.Value</option>
+                                                            }
+                                                        }
+                                                    }
+                                                </select>
+                                            }
+                                            else if (attr.AttributeDefinition?.DataType == Itransition.Models.Attributes.AttributeDataType.Boolean)
+                                            {
+                                                <div class="form-check">
+                                                    <input id="val_@attr.Id" class="form-check-input" type="checkbox" @(attr.Value == "true" ? "checked" : "")>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <input id="val_@attr.Id" type="text" class="form-control form-control-sm" value="@attr.Value" placeholder="Empty" />
+                                            }
                                         </td>
                                         <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-success me-1" onclick="saveRow('@attr.Id', '@attr.AttributeDefinition?.DataType')">
+                                                <i class="bi bi-check-lg"></i> Save
+                                            </button>
                                             <button class="btn btn-sm btn-outline-danger" onclick="removeAttribute('@attr.Id')">
                                                 <i class="bi bi-trash"></i>
                                             </button>
@@ -143,9 +174,14 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between">
                                             <h5 class="card-title fw-bold text-primary">@proj.Name</h5>
-                                            <button class="btn btn-sm btn-outline-danger border-0" onclick="removeProject('@proj.Id')">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="openEditProjectModal('@proj.Id', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode((string)proj.Name))', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode((string)proj.Description ?? ""))', '@(proj.StartDate?.ToString("yyyy-MM-dd"))', '@(proj.EndDate?.ToString("yyyy-MM-dd"))', '@Html.Raw(System.Web.HttpUtility.JavaScriptStringEncode(string.Join(", ", ((IEnumerable<dynamic>)proj.TechnologyTags).Select(t => (string)t.TagName))))')">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger border-0" onclick="removeProject('@proj.Id')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
                                         </div>
                                         <h6 class="card-subtitle mb-2 text-muted small">
                                             <i class="bi bi-calendar3 me-1"></i>
@@ -289,6 +325,46 @@
   </div>
 </div>
 
+<div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="editProjectModalLabel">Edit Project</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editProjectId">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Project Name</label>
+            <input type="text" class="form-control" id="editProjectName" placeholder="e.g. E-commerce Website">
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="date" class="form-control" id="editProjectStart">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">End Date</label>
+                <input type="date" class="form-control" id="editProjectEnd">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Description</label>
+            <textarea class="form-control" rows="3" id="editProjectDesc" placeholder="Describe your role and the project..."></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Technology Tags</label>
+            <input type="text" class="form-control" id="editProjectTags" placeholder="e.g. C#, .NET, React">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="updateProject()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 @section Scripts {
     <script>
         const profileId = '@Model.Id';
@@ -310,7 +386,7 @@
         function addAttribute() {
             const attrId = document.getElementById('newAttributeSelect').value;
             if (!attrId) return alert('Please select an attribute');
-            
+
             const formData = new FormData();
             formData.append('profileId', profileId);
             formData.append('attributeDefinitionId', attrId);
@@ -337,6 +413,41 @@
             }
         }
 
+        function saveRow(id, dataType) {
+            const input = document.getElementById('val_' + id);
+            let value = '';
+            if (dataType === 'Boolean') {
+                value = input.checked ? 'true' : 'false';
+            } else {
+                value = input.value;
+            }
+            
+            const btn = event.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-hourglass"></i>';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('value', value);
+            fetch('/CandidateProfiles/UpdateAttributeValue', {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json()).then(data => {
+                btn.innerHTML = '<i class="bi bi-check-lg"></i> Saved';
+                btn.classList.replace('btn-outline-success', 'btn-success');
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.replace('btn-success', 'btn-outline-success');
+                    btn.disabled = false;
+                }, 2000);
+            }).catch(() => {
+                alert('Error saving data');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            });
+        }
+
         function saveProject() {
             const name = document.getElementById('newProjectName').value;
             const desc = document.getElementById('newProjectDesc').value;
@@ -355,6 +466,47 @@
             formData.append('tags', tags);
 
             fetch('/CandidateProfiles/AddProject', {
+                method: 'POST',
+                body: formData
+            }).then(async res => {
+                if(!res.ok) {
+                    const text = await res.text();
+                    alert(text || 'Error saving project');
+                } else {
+                    location.reload();
+                }
+            });
+        }
+
+        function openEditProjectModal(id, name, desc, start, end, tags) {
+            document.getElementById('editProjectId').value = id;
+            document.getElementById('editProjectName').value = name;
+            document.getElementById('editProjectDesc').value = desc;
+            document.getElementById('editProjectStart').value = start;
+            document.getElementById('editProjectEnd').value = end;
+            document.getElementById('editProjectTags').value = tags;
+            new bootstrap.Modal(document.getElementById('editProjectModal')).show();
+        }
+
+        function updateProject() {
+            const id = document.getElementById('editProjectId').value;
+            const name = document.getElementById('editProjectName').value;
+            const desc = document.getElementById('editProjectDesc').value;
+            const start = document.getElementById('editProjectStart').value;
+            const end = document.getElementById('editProjectEnd').value;
+            const tags = document.getElementById('editProjectTags').value;
+
+            if (!name) return alert('Name is required');
+
+            const formData = new FormData();
+            formData.append('id', id);
+            formData.append('name', name);
+            formData.append('description', desc);
+            formData.append('startDate', start);
+            formData.append('endDate', end);
+            formData.append('tags', tags);
+
+            fetch('/CandidateProfiles/EditProject', {
                 method: 'POST',
                 body: formData
             }).then(async res => {

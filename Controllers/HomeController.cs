@@ -15,9 +15,27 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
+        ViewBag.PositionsCount = await _context.Positions.CountAsync();
+        ViewBag.CandidatesCount = await _context.CandidateProfiles.CountAsync();
+        ViewBag.CvsCount = await _context.Cvs.CountAsync();
+
         var publicPositions = await _context.Positions
             .Where(p => p.IsPublic)
+            .OrderByDescending(p => p.CreatedDate)
+            .Take(6)
             .ToListAsync();
+
+        var allPositions = await _context.Positions.ToListAsync();
+        var allTags = allPositions
+            .Where(p => !string.IsNullOrEmpty(p.Tags))
+            .SelectMany(p => p.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            .Select(t => t.Trim())
+            .GroupBy(t => t)
+            .OrderByDescending(g => g.Count())
+            .Take(15)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        ViewBag.PopularTags = allTags;
 
         return View(publicPositions);
     }

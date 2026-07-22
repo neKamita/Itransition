@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Itransition.Data;
 using Itransition.Models.Positions;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace Itransition.Controllers
 {
@@ -22,12 +23,77 @@ namespace Itransition.Controllers
         }
 
         // GET: Positions
+        [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Positions.ToListAsync());
+            var positions = await _context.Positions
+                .Include(p => p.PositionAccessRules)
+                .ToListAsync();
+
+            if (User.IsInRole("Candidate"))
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var candidate = await _context.CandidateProfiles
+                    .Include(c => c.AttributeValues)
+                    .FirstOrDefaultAsync(c => c.UserId == userId);
+
+                if (candidate != null)
+                {
+                    var visiblePositions = new List<Position>();
+                    foreach (var pos in positions)
+                    {
+                        if (pos.IsPublic)
+                        {
+                            visiblePositions.Add(pos);
+                            continue;
+                        }
+
+                        bool hasAccess = true;
+                        foreach (var rule in pos.PositionAccessRules)
+                        {
+                            var candidateAttr = candidate.AttributeValues
+                                .FirstOrDefault(a => a.AttributeDefinitionId == rule.AttributeDefinitionId);
+
+                            if (candidateAttr == null || string.IsNullOrWhiteSpace(candidateAttr.Value))
+                            {
+                                hasAccess = false;
+                                break;
+                            }
+
+                            if (rule.Operator == "==" && candidateAttr.Value != rule.TargetValue) hasAccess = false;
+                            if (rule.Operator == "!=" && candidateAttr.Value == rule.TargetValue) hasAccess = false;
+                            if (rule.Operator == "CONTAINS" && !candidateAttr.Value.Contains(rule.TargetValue)) hasAccess = false;
+
+                            if (rule.Operator == ">" || rule.Operator == "<")
+                            {
+                                if (double.TryParse(candidateAttr.Value, out double val1) && double.TryParse(rule.TargetValue, out double val2))
+                                {
+                                    if (rule.Operator == ">" && val1 <= val2) hasAccess = false;
+                                    if (rule.Operator == "<" && val1 >= val2) hasAccess = false;
+                                }
+                                else
+                                {
+                                    hasAccess = false;
+                                }
+                            }
+
+                            if (!hasAccess) break;
+                        }
+
+                        if (hasAccess)
+                        {
+                            visiblePositions.Add(pos);
+                        }
+                    }
+                    return View(visiblePositions);
+                }
+            }
+
+            return View(positions);
         }
 
         // GET: Positions/Details/5
+        [AllowAnonymous]
         public async Task<IActionResult> Details(Guid? id)
         {
             if (id == null)
@@ -36,10 +102,21 @@ namespace Itransition.Controllers
             }
 
             var position = await _context.Positions
+                .Include(p => p.PositionRequiredAttributes)
+                    .ThenInclude(pa => pa.AttributeDefinition)
+                .Include(p => p.PositionAccessRules)
+                    .ThenInclude(pr => pr.AttributeDefinition)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (position == null)
             {
                 return NotFound();
+            }
+
+            if (User.IsInRole("Administrator") || User.IsInRole("Recruiter"))
+            {
+                ViewBag.AvailableAttributes = await _context.AttributeDefinitions
+                    .OrderBy(a => a.Category).ThenBy(a => a.Name)
+                    .ToListAsync();
             }
 
             return View(position);
@@ -155,6 +232,77 @@ namespace Itransition.Controllers
         private bool PositionExists(Guid id)
         {
             return _context.Positions.Any(e => e.Id == id);
+        }
+        [HttpPost]
+        [Authorize(Roles = "Administrator,Recruiter")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddRequirement(Guid positionId, Guid attributeId)
+        {
+            if (positionId != Guid.Empty && attributeId != Guid.Empty)
+            {
+                var req = new PositionAttribute
+                {
+                    Id = Guid.NewGuid(),
+                    PositionId = positionId,
+                    AttributeDefinitionId = attributeId,
+                    Position = null!,
+                    AttributeDefinition = null!
+                };
+                _context.PositionAttributes.Add(req);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Details), new { id = positionId });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrator,Recruiter")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveRequirement(Guid id, Guid positionId)
+        {
+            var req = await _context.PositionAttributes.FindAsync(id);
+            if (req != null && req.PositionId == positionId)
+            {
+                _context.PositionAttributes.Remove(req);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Details), new { id = positionId });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrator,Recruiter")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddAccessRule(Guid positionId, Guid attributeId, string operatorType, string targetValue)
+        {
+            if (positionId != Guid.Empty && attributeId != Guid.Empty && !string.IsNullOrWhiteSpace(operatorType))
+            {
+                var rule = new PositionAccessRule
+                {
+                    Id = Guid.NewGuid(),
+                    PositionId = positionId,
+                    AttributeDefinitionId = attributeId,
+                    Operator = operatorType,
+                    TargetValue = targetValue ?? "",
+                    Position = null!,
+                    AttributeDefinition = null!
+                };
+                _context.PositionAccessRules.Add(rule);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Details), new { id = positionId });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Administrator,Recruiter")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveAccessRule(Guid id, Guid positionId)
+        {
+            var rule = await _context.PositionAccessRules.FindAsync(id);
+            if (rule != null && rule.PositionId == positionId)
+            {
+                _context.PositionAccessRules.Remove(rule);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(Details), new { id = positionId });
         }
     }
 }
