@@ -302,10 +302,6 @@ namespace Itransition.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        private bool AttributeDefinitionExists(Guid id)
-        {
-            return _context.AttributeDefinitions.Any(e => e.Id == id);
-        }
 
         private async Task PopulateCategoriesAsync(Guid? selectedCategoryId = null)
         {

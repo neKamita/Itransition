@@ -184,10 +184,5 @@ namespace Itransition.Controllers
             }
             return RedirectToAction(nameof(Index));
         }
-
-        private bool AttributeOptionExists(Guid id)
-        {
-            return _context.AttributeOptions.Any(e => e.Id == id);
-        }
     }
 }

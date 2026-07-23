@@ -72,8 +72,6 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("RequireAdministratorRole", policy => policy.RequireRole("Administrator"));
-    options.AddPolicy("RequireCandidateRole", policy => policy.RequireRole("Candidate"));
-    options.AddPolicy("RequireRecruiterRole", policy => policy.RequireRole("Recruiter"));
 
 });
 

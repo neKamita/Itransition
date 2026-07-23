@@ -386,10 +386,6 @@ namespace Itransition.Controllers
             return RedirectToAction(nameof(Edit), new { id = copy.Id });
         }
 
-        private bool PositionExists(Guid id)
-        {
-            return _context.Positions.Any(e => e.Id == id);
-        }
         [HttpPost]
         [Authorize(Roles = "Administrator,Recruiter")]
         [ValidateAntiForgeryToken]
