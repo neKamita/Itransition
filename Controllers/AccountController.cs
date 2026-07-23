@@ -108,9 +108,9 @@ public class AccountController : Controller
                 Projects = new List<ProjectProfile>(),
                 AttributeValues =
                 [
-                    NewBuiltInValue(BuiltInAttributeKeys.FirstNameId, register.Name),
-                    NewBuiltInValue(BuiltInAttributeKeys.LastNameId, null),
-                    NewBuiltInValue(BuiltInAttributeKeys.LocationId, null),
+                    NewBuiltInValue(BuiltInAttributeKeys.FirstNameId, register.FirstName),
+                    NewBuiltInValue(BuiltInAttributeKeys.LastNameId, register.LastName),
+                    NewBuiltInValue(BuiltInAttributeKeys.LocationId, register.Location),
                     NewBuiltInValue(BuiltInAttributeKeys.PersonalPhotoId, null)
                 ]
             };
@@ -142,7 +142,7 @@ public class AccountController : Controller
     {
         return new ApplicationUser
         {
-            FullName = r.Name,
+            FullName = $"{r.FirstName.Trim()} {r.LastName.Trim()}",
             Email = r.Email,
             UserName = r.Email
         };

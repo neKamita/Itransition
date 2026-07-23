@@ -16,13 +16,32 @@
                     @Html.AntiForgeryToken()
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="Name" class="form-label fw-semibold"></label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-person"></i></span>
-                            <input asp-for="Name" class="form-control" placeholder="John Doe" autocomplete="name" />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="FirstName" class="form-label fw-semibold">First Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input asp-for="FirstName" class="form-control" placeholder="John" autocomplete="given-name" />
+                            </div>
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
                         </div>
-                        <span asp-validation-for="Name" class="text-danger small"></span>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="LastName" class="form-label fw-semibold">Last Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input asp-for="LastName" class="form-control" placeholder="Doe" autocomplete="family-name" />
+                            </div>
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Location" class="form-label fw-semibold">Location</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                            <input asp-for="Location" class="form-control" placeholder="City, Country" />
+                        </div>
+                        <span asp-validation-for="Location" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">

@@ -4,9 +4,16 @@ namespace Itransition.ViewModel;
 
 public class RegisterViewModel
 {
-    [Required(ErrorMessage = "Please enter a username")]
+    [Required(ErrorMessage = "Please enter your first name")]
+    [StringLength(50)]
+    public required string FirstName { get; set; }
+
+    [Required(ErrorMessage = "Please enter your last name")]
+    [StringLength(50)]
+    public required string LastName { get; set; }
+
     [StringLength(100)]
-    public required string Name { get; set; }
+    public string? Location { get; set; }
 
     [Required(ErrorMessage = "Please enter an email address")]
     [EmailAddress]
