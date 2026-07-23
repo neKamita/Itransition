@@ -45,7 +45,7 @@
                         <label asp-for="DataType" class="form-label fw-semibold">Data Type</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-code-square"></i></span>
-                            <select asp-for="DataType" class="form-select"></select>
+                            <select asp-for="DataType" class="form-select" asp-items="Html.GetEnumSelectList<Itransition.Models.Attributes.AttributeDataType>()"></select>
                         </div>
                         <span asp-validation-for="DataType" class="text-danger small"></span>
                     </div>
