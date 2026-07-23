@@ -13,7 +13,7 @@
             <tbody>
                 <tr>
                     <th class="text-muted" style="width: 30%;"><i class="bi bi-briefcase me-1"></i>Position</th>
-                    <td class="fw-bold">@Html.DisplayFor(model => model.Position.Id)</td>
+                    <td class="fw-bold">@Model.Position.Title</td>
                 </tr>
                 <tr>
                     <th class="text-muted"><i class="bi bi-tag me-1"></i>Attribute</th>
@@ -30,8 +30,13 @@
         <a asp-action="Index" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back to List
         </a>
-        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning">
-            <i class="bi bi-pencil me-1"></i>Edit Requirement
-        </a>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-warning me-2">
+                <i class="bi bi-pencil me-1"></i>Edit Requirement
+            </a>
+            <a asp-action="Delete" asp-route-id="@Model?.Id" class="btn btn-danger">
+                <i class="bi bi-trash me-1"></i>Delete Requirement
+            </a>
+        </div>
     </div>
 </div>

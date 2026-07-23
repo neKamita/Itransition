@@ -53,8 +53,6 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 {
-    // Role changes and account blocking rotate the security stamp. Validating it
-    // on every request makes those administrative actions effective immediately.
     options.ValidationInterval = TimeSpan.Zero;
 });
 
