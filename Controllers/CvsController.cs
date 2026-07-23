@@ -725,6 +725,10 @@ public class CvsController : Controller
                     .ThenInclude(requirement => requirement.AttributeDefinition)
                         .ThenInclude(definition => definition.Options)
             .Include(cv => cv.Position)
+                .ThenInclude(position => position.PositionRequiredAttributes)
+                    .ThenInclude(requirement => requirement.AttributeDefinition)
+                        .ThenInclude(definition => definition.Category)
+            .Include(cv => cv.Position)
                 .ThenInclude(position => position.PositionAccessRules)
             .Include(cv => cv.Likes);
     }

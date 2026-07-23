@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Itransition.Data;
 using Itransition.Models.Attributes;
+using Itransition.ViewModel;
 
 using Microsoft.AspNetCore.Authorization;
 
@@ -65,15 +66,22 @@ namespace Itransition.Controllers
         }
 
         // POST: AttributeDefinitions/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name,CategoryId,Description,DataType")] AttributeDefinition attributeDefinition)
+        public async Task<IActionResult> Create(AttributeDefinitionViewModel model)
         {
             if (ModelState.IsValid)
             {
-                attributeDefinition.Id = Guid.NewGuid();
+                var attributeDefinition = new AttributeDefinition
+                {
+                    Id = Guid.NewGuid(),
+                    Name = model.Name,
+                    CategoryId = model.CategoryId,
+                    Description = model.Description,
+                    DataType = model.DataType,
+                    IsBuiltIn = false
+                };
+
                 _context.Add(attributeDefinition);
                 try
                 {
@@ -82,12 +90,12 @@ namespace Itransition.Controllers
                 }
                 catch (DbUpdateException)
                 {
-                    ModelState.AddModelError(nameof(attributeDefinition.Name), "An attribute with this name already exists.");
+                    ModelState.AddModelError(nameof(model.Name), "An attribute with this name already exists.");
                 }
             }
 
-            await PopulateCategoriesAsync(attributeDefinition.CategoryId);
-            return View(attributeDefinition);
+            await PopulateCategoriesAsync(model.CategoryId);
+            return View(model);
         }
 
         // GET: AttributeDefinitions/Edit/5
@@ -103,26 +111,36 @@ namespace Itransition.Controllers
             {
                 return NotFound();
             }
-            await PopulateCategoriesAsync(attributeDefinition.CategoryId);
-            return View(attributeDefinition);
+
+            var model = new AttributeDefinitionViewModel
+            {
+                Id = attributeDefinition.Id,
+                Name = attributeDefinition.Name,
+                CategoryId = attributeDefinition.CategoryId,
+                Description = attributeDefinition.Description,
+                DataType = attributeDefinition.DataType,
+                IsBuiltIn = attributeDefinition.IsBuiltIn,
+                Version = attributeDefinition.Version
+            };
+
+            await PopulateCategoriesAsync(model.CategoryId);
+            return View(model);
         }
 
         // POST: AttributeDefinitions/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Guid id, [Bind("Id,Name,CategoryId,Description,DataType,Version")] AttributeDefinition attributeDefinition)
+        public async Task<IActionResult> Edit(Guid id, AttributeDefinitionViewModel model)
         {
-            if (id != attributeDefinition.Id)
+            if (id != model.Id)
             {
                 return NotFound();
             }
 
             if (!ModelState.IsValid)
             {
-                await PopulateCategoriesAsync(attributeDefinition.CategoryId);
-                return View(attributeDefinition);
+                await PopulateCategoriesAsync(model.CategoryId);
+                return View(model);
             }
 
             var definitionToUpdate = await _context.AttributeDefinitions.FindAsync(id);
@@ -131,14 +149,14 @@ namespace Itransition.Controllers
                 return NotFound();
             }
 
-            definitionToUpdate.Name = attributeDefinition.Name;
-            definitionToUpdate.CategoryId = attributeDefinition.CategoryId;
-            definitionToUpdate.Description = attributeDefinition.Description;
+            definitionToUpdate.Name = model.Name;
+            definitionToUpdate.CategoryId = model.CategoryId;
+            definitionToUpdate.Description = model.Description;
             if (!definitionToUpdate.IsBuiltIn)
             {
-                definitionToUpdate.DataType = attributeDefinition.DataType;
+                definitionToUpdate.DataType = model.DataType;
             }
-            _context.Entry(definitionToUpdate).Property(item => item.Version).OriginalValue = attributeDefinition.Version;
+            _context.Entry(definitionToUpdate).Property(item => item.Version).OriginalValue = model.Version;
 
             try
             {
@@ -152,17 +170,17 @@ namespace Itransition.Controllers
                 }
 
                 var databaseValues = await _context.Entry(definitionToUpdate).GetDatabaseValuesAsync();
-                attributeDefinition.Version = databaseValues?.GetValue<uint>(nameof(AttributeDefinition.Version))
-                    ?? attributeDefinition.Version;
+                model.Version = databaseValues?.GetValue<uint>(nameof(AttributeDefinition.Version))
+                    ?? model.Version;
                 ModelState.AddModelError(string.Empty, "This attribute was changed by another recruiter. Review your values and submit again.");
-                await PopulateCategoriesAsync(attributeDefinition.CategoryId);
-                return View(attributeDefinition);
+                await PopulateCategoriesAsync(model.CategoryId);
+                return View(model);
             }
             catch (DbUpdateException)
             {
-                ModelState.AddModelError(nameof(attributeDefinition.Name), "An attribute with this name already exists.");
-                await PopulateCategoriesAsync(attributeDefinition.CategoryId);
-                return View(attributeDefinition);
+                ModelState.AddModelError(nameof(model.Name), "An attribute with this name already exists.");
+                await PopulateCategoriesAsync(model.CategoryId);
+                return View(model);
             }
 
             return RedirectToAction(nameof(Index));

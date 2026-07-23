@@ -1,4 +1,4 @@
-@model Itransition.Models.Attributes.AttributeDefinition
+@model Itransition.ViewModel.AttributeDefinitionViewModel
 
 @{
     ViewData["Title"] = "Edit Attribute";
@@ -47,7 +47,7 @@
                         <label asp-for="DataType" class="form-label fw-semibold">Data Type</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-code-square"></i></span>
-                            <select asp-for="DataType" class="form-select" disabled="@Model.IsBuiltIn" asp-items="Html.GetEnumSelectList<Itransition.Models.Attributes.AttributeDataType>()"></select>
+                            <select asp-for="DataType" class="form-select" disabled="@Model.IsBuiltIn" asp-items="@Html.GetEnumSelectList<Itransition.Models.Attributes.AttributeDataType>()"></select>
                             @if (Model.IsBuiltIn)
                             {
                                 <input type="hidden" asp-for="DataType" />
